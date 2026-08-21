@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using VRGame.Core;
 using VRGame.Locomotion;
 using VRGame.Samurai;
 using VRGame.Survivor;
@@ -58,10 +59,10 @@ public static class SamuSceneBuilder
         Transform hazardVisual = BuildHazardVisual();
         BuildAscentTower(bambooPrefab);
 
-        GameObject rig = BuildPlayerRig(out SwordGorillaLocomotion locomotion, out Transform startPoint,
+        GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform startPoint,
             out KatanaSlicer slicer, out Transform head);
         SamuHUD hud = BuildHud(head);
-        BuildDirectors(rig, locomotion, startPoint, slicer, hazardVisual, enemyPrefab, hud);
+        BuildDirectors(rig, playerRig, startPoint, slicer, hazardVisual, enemyPrefab, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -294,13 +295,13 @@ public static class SamuSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
-    private static GameObject BuildPlayerRig(out SwordGorillaLocomotion locomotion, out Transform startPoint,
+    private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform startPoint,
         out KatanaSlicer slicer, out Transform head)
     {
         var rig = new GameObject("PlayerRig");
         rig.transform.position = new Vector3(0f, 1f, 0f);
 
-        locomotion = rig.AddComponent<SwordGorillaLocomotion>(); // Rigidbody 자동 부착
+        SwordGorillaLocomotion locomotion = rig.AddComponent<SwordGorillaLocomotion>(); // Rigidbody 자동 부착
 
         var bodyCollider = rig.AddComponent<CapsuleCollider>();
         bodyCollider.radius = 0.3f;
@@ -320,6 +321,17 @@ public static class SamuSceneBuilder
         locomotionSo.ApplyModifiedPropertiesWithoutUndo();
 
         BuildRigModes(rig, head, rightHand, leftHand);
+
+        // 게임 시스템이 참조할 유일한 플레이어 창구. 로코모션을 갈아 끼워도 이 컴포넌트만 그대로 두면
+        // 사무라이 게임 코드는 아무것도 바뀌지 않는다.
+        playerRig = rig.AddComponent<PlayerRig>();
+        var rigSo = new SerializedObject(playerRig);
+        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "head", head);
+        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
+        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
+        MakeAssetsUtil.SetRef(rigSo, "body", rig.GetComponent<Rigidbody>());
+        rigSo.ApplyModifiedPropertiesWithoutUndo();
 
         // 리그 전체(카메라·손·칼 포함)를 물리 쿼리에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
         SetLayerRecursively(rig, IgnoreRaycastLayer);
@@ -385,7 +397,7 @@ public static class SamuSceneBuilder
     }
 
     /// <summary>VR 추적과 마우스·키보드 임시 조작을 둘 다 붙여두고, 실행 시 헤드셋 유무에 따라
-    /// RigModeSwitcher가 알아서 하나만 켠다.</summary>
+    /// XRModeSwitcher가 알아서 하나만 켠다.</summary>
     private static void BuildRigModes(GameObject rig, Transform head, Transform swordHand, Transform freeHand)
     {
         var placeholder = rig.AddComponent<PlaceholderSwordRig>();
@@ -395,10 +407,10 @@ public static class SamuSceneBuilder
         MakeAssetsUtil.SetRef(placeholderSo, "freeHand", freeHand);
         placeholderSo.ApplyModifiedPropertiesWithoutUndo();
 
-        var switcher = rig.AddComponent<RigModeSwitcher>();
+        var switcher = rig.AddComponent<XRModeSwitcher>();
         var switcherSo = new SerializedObject(switcher);
-        SetObjectArray(switcherSo, "xrTrackers", rig.GetComponentsInChildren<XRNodeTracker>(true));
-        MakeAssetsUtil.SetRef(switcherSo, "placeholderRig", placeholder);
+        SetObjectArray(switcherSo, "vrOnly", rig.GetComponentsInChildren<XRNodeTracker>(true));
+        SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
         switcherSo.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -471,14 +483,14 @@ public static class SamuSceneBuilder
 
     // ────────────────────────────── Directors ──────────────────────────────
 
-    private static void BuildDirectors(GameObject rig, SwordGorillaLocomotion locomotion, Transform startPoint,
+    private static void BuildDirectors(GameObject rig, PlayerRig playerRig, Transform startPoint,
         KatanaSlicer slicer, Transform hazardVisual, GameObject enemyPrefab, SamuHUD hud)
     {
         var managerGo = new GameObject("SamuDirectors");
 
         var exploration = managerGo.AddComponent<BambooExploration>();
         var explorationSo = new SerializedObject(exploration);
-        MakeAssetsUtil.SetRef(explorationSo, "player", locomotion);
+        MakeAssetsUtil.SetRef(explorationSo, "player", playerRig);
         MakeAssetsUtil.SetRef(explorationSo, "startPoint", startPoint);
         SetLayerMask(explorationSo, "groundMask", EnvironmentMask);
         explorationSo.ApplyModifiedPropertiesWithoutUndo();

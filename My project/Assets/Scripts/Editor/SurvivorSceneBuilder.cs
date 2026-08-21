@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VRGame.Core;
 using VRGame.Danmaku;
 using VRGame.Survivor;
 
@@ -169,6 +170,14 @@ public static class SurvivorSceneBuilder
         var weaponSo = new SerializedObject(player.GetComponent<AutoAttackWeapon>());
         MakeAssetsUtil.SetRef(weaponSo, "muzzle", muzzle);
         weaponSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 게임 시스템이 참조할 유일한 플레이어 창구. 이 게임은 Transform 이동이라 body는 비운다 —
+        // 나중에 물리 기반 로코모션으로 바꾸면 body만 채우면 되고 게임 코드는 안 바뀐다.
+        var playerRig = EnsureComponent<PlayerRig>(player);
+        var rigSo = new SerializedObject(playerRig);
+        MakeAssetsUtil.SetRef(rigSo, "root", player.transform);
+        // 탑다운 게임이라 머리·손 개념이 없다. 비워 두는 것이 가짜 참조를 넣는 것보다 정직하다.
+        rigSo.ApplyModifiedPropertiesWithoutUndo();
 
         return player;
     }

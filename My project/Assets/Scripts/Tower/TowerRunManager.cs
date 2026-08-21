@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using VRGame.Core;
 
 namespace VRGame.Tower
 {
@@ -12,7 +13,7 @@ namespace VRGame.Tower
     public class TowerRunManager : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private Rigidbody playerBody;
+        [SerializeField] private PlayerRig player;
         [SerializeField] private Transform startPoint;
         [SerializeField] private TowerManager tower;
         [SerializeField] private FallManager fallManager;
@@ -52,7 +53,7 @@ namespace VRGame.Tower
 
         private void Update()
         {
-            float height = playerBody.position.y;
+            float height = player.Position.y;
             if (height > BestHeight)
             {
                 BestHeight = height;
@@ -128,13 +129,12 @@ namespace VRGame.Tower
                 }
             }
 
-            playerBody.linearVelocity = Vector3.zero;
-            playerBody.angularVelocity = Vector3.zero;
-            playerBody.position = startPoint.position;
+            // 순간이동은 PlayerRig 한 경로로만 한다 — 속도 초기화와 로코모션 상태 리셋이 함께 일어난다.
+            player.Teleport(startPoint.position);
 
             tower.RebuildTower();
 
-            hud.SetHeight(playerBody.position.y);
+            hud.SetHeight(player.Position.y);
             hud.SetBest(BestHeight);
             hud.SetState(false, 0f);
         }

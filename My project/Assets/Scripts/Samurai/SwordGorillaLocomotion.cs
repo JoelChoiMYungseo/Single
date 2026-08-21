@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.XR;
+using VRGame.Core;
 
 namespace VRGame.Samurai
 {
@@ -9,7 +10,7 @@ namespace VRGame.Samurai
     ///
     /// 물리 조작은 전부 FixedUpdate에서만 수행한다 (RULE-03).</summary>
     [RequireComponent(typeof(Rigidbody))]
-    public class SwordGorillaLocomotion : MonoBehaviour
+    public class SwordGorillaLocomotion : MonoBehaviour, ILocomotionDriver
     {
         [Header("References")]
         [SerializeField] private Transform katanaTip;
@@ -186,14 +187,13 @@ namespace VRGame.Samurai
             }
         }
 
-        /// <summary>추락 리스폰 등 외부에서 플레이어를 순간이동시킬 때 사용한다. 속도를 지우지 않으면
-        /// 떨어지던 가속도를 그대로 안고 다시 떨어진다.</summary>
-        public void Teleport(Vector3 position)
-        {
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
-            transform.position = position;
+        public Vector3 Velocity => body != null ? body.linearVelocity : Vector3.zero;
 
+        /// <summary>PlayerRig가 순간이동시킨 뒤 통보한다. 손 기준점을 새 위치로 다시 잡아야 한다 —
+        /// 안 그러면 몸이 이동한 거리가 그대로 "칼끝이 초고속으로 움직였다"로 계산되어
+        /// 리스폰 직후 플레이어가 로켓처럼 날아간다.</summary>
+        public void OnTeleported(Vector3 position)
+        {
             if (katanaTip != null) lastTipPosition = katanaTip.position;
             if (freeHand != null) lastFreeHandPosition = freeHand.position;
         }

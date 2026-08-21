@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using VRGame.Core;
 
 namespace VRGame.Tower
 {
@@ -15,7 +16,7 @@ namespace VRGame.Tower
     public class FallManager : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private Rigidbody playerBody;
+        [SerializeField] private PlayerRig player;
         [Tooltip("붙잡고 있으면 슬로우모션을 즉시 해제하기 위해 참조한다.")]
         [SerializeField] private VRHandController[] hands;
 
@@ -82,7 +83,8 @@ namespace VRGame.Tower
 
         private void UpdateFallState(float unscaledDelta)
         {
-            float verticalSpeed = playerBody.linearVelocity.y;
+            Vector3 velocity = player.Velocity;
+            float verticalSpeed = velocity.y;
             bool fallingNow = verticalSpeed < -fallSpeedThreshold;
 
             if (fallingNow)
@@ -106,7 +108,7 @@ namespace VRGame.Tower
             }
 
             // 추락이 끝났다 — 붙잡아서 멈춘 것인지, 바닥에 처박은 것인지 구분한다.
-            bool stopped = playerBody.linearVelocity.magnitude < landedSpeedThreshold;
+            bool stopped = velocity.magnitude < landedSpeedThreshold;
             bool grabbed = IsAnyHandHolding();
 
             if (grabbed)

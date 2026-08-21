@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using VRGame.Core;
 
 namespace VRGame.Samurai
 {
@@ -12,7 +13,8 @@ namespace VRGame.Samurai
     public class BambooExploration : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private SwordGorillaLocomotion player;
+        [Tooltip("로코모션 구현이 아니라 리그를 참조한다 — 로코모션을 갈아 끼워도 이 파일은 안 바뀐다.")]
+        [SerializeField] private PlayerRig player;
         [SerializeField] private Transform startPoint;
 
         [Header("Fall")]
@@ -40,18 +42,15 @@ namespace VRGame.Samurai
         public float HighestY { get; private set; }
         public Vector3 CurrentCheckpoint { get; private set; }
 
-        private Rigidbody playerBody;
-
         private void Awake()
         {
-            playerBody = player.GetComponent<Rigidbody>();
-            CurrentCheckpoint = startPoint != null ? startPoint.position : player.transform.position;
+            CurrentCheckpoint = startPoint != null ? startPoint.position : player.Position;
             HighestY = CurrentCheckpoint.y;
         }
 
         private void Update()
         {
-            if (player.transform.position.y < fallThresholdY)
+            if (player.Position.y < fallThresholdY)
             {
                 Respawn();
                 return;
@@ -63,7 +62,7 @@ namespace VRGame.Samurai
         /// <summary>충분히 높이 올라가서 발을 붙이고 멈춘 순간에만 체크포인트를 옮긴다.</summary>
         private void TryPromoteCheckpoint()
         {
-            Vector3 position = player.transform.position;
+            Vector3 position = player.Position;
 
             if (position.y > HighestY)
             {
@@ -75,7 +74,7 @@ namespace VRGame.Samurai
                 return;
             }
 
-            if (playerBody.linearVelocity.magnitude > restingSpeedThreshold)
+            if (player.Velocity.magnitude > restingSpeedThreshold)
             {
                 return;
             }

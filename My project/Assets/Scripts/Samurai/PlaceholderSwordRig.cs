@@ -8,7 +8,7 @@ namespace VRGame.Samurai
     ///
     /// 로코모션과 슬라이서는 "손 트랜스폼이 얼마나 빨리 움직였는가"만 보기 때문에, 그 트랜스폼을
     /// 컨트롤러가 움직이든 마우스가 움직이든 동작이 완전히 같다. 그래서 VR로 넘어갈 때 이 컴포넌트만
-    /// 꺼주면 되고 게임 로직은 한 줄도 바뀌지 않는다 — RigModeSwitcher가 그 전환을 자동으로 한다.</summary>
+    /// 꺼주면 되고 게임 로직은 한 줄도 바뀌지 않는다 — XRModeSwitcher가 그 전환을 자동으로 한다.</summary>
     [RequireComponent(typeof(Rigidbody))]
     public class PlaceholderSwordRig : MonoBehaviour
     {

@@ -48,8 +48,7 @@ namespace VRGame.Danmaku
 
         public AttackPattern CurrentPattern { get; private set; } = AttackPattern.Idle;
 
-        private Rigidbody playerRigidbody;
-        private VRGame.Survivor.PlaceholderPlayerController placeholderPlayer;
+        private VRGame.Core.PlayerRig playerRig;
         private Coroutine attackRoutine;
         private WaitForSeconds ringBurstCooldownWait;
         private WaitForSeconds ringBurstWaveDelayWait;
@@ -65,9 +64,9 @@ namespace VRGame.Danmaku
             }
             if (playerTarget != null)
             {
-                // VR 리그(Rigidbody 기반)와 임시 플레이어(Transform 이동) 둘 다에서 속도를 얻을 수 있게 한다.
-                playerRigidbody = playerTarget.GetComponent<Rigidbody>();
-                placeholderPlayer = playerTarget.GetComponent<VRGame.Survivor.PlaceholderPlayerController>();
+                // 로코모션 종류를 몰라도 속도를 얻는다 — PlayerRig가 물리든 Transform 이동이든
+                // 하나의 값으로 정규화해 준다.
+                playerRig = playerTarget.GetComponent<VRGame.Core.PlayerRig>();
             }
 
             ringBurstCooldownWait = new WaitForSeconds(ringBurstCooldown);
@@ -160,13 +159,9 @@ namespace VRGame.Danmaku
 
         private Vector3 PredictPlayerPosition()
         {
-            if (playerRigidbody != null)
+            if (playerRig != null)
             {
-                return playerTarget.position + playerRigidbody.linearVelocity * predictionTime;
-            }
-            if (placeholderPlayer != null)
-            {
-                return playerTarget.position + placeholderPlayer.CurrentVelocity * predictionTime;
+                return playerTarget.position + playerRig.Velocity * predictionTime;
             }
             return playerTarget.position;
         }

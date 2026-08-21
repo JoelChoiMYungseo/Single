@@ -46,10 +46,10 @@ public static class TowerSceneBuilder
         RemoveDefaultCamera();
         BuildEnvironment();
 
-        GameObject rig = BuildPlayerRig(out Rigidbody playerBody, out Transform head, out Transform startPoint,
+        GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint,
             out VRHandController leftHand, out VRHandController rightHand);
         TowerHUD hud = BuildHud(head);
-        BuildDirectors(rig, playerBody, startPoint, blockPrefab, leftHand, rightHand, hud);
+        BuildDirectors(rig, playerRig, startPoint, blockPrefab, leftHand, rightHand, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -128,13 +128,13 @@ public static class TowerSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
-    private static GameObject BuildPlayerRig(out Rigidbody playerBody, out Transform head, out Transform startPoint,
+    private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint,
         out VRHandController leftHand, out VRHandController rightHand)
     {
         var rig = new GameObject("PlayerRig");
         rig.transform.position = new Vector3(0f, 1.2f, 1.6f);
 
-        playerBody = rig.AddComponent<Rigidbody>();
+        Rigidbody playerBody = rig.AddComponent<Rigidbody>();
         playerBody.mass = 70f; // 사람 무게. 이 값이 곧 블록에 실리는 하중의 기준이다.
         playerBody.useGravity = true;
         playerBody.constraints = RigidbodyConstraints.FreezeRotation;
@@ -154,6 +154,24 @@ public static class TowerSceneBuilder
         rightHand = BuildPhysicsHand(rig.transform, "RightPhysicsHand", rightTarget, playerBody, XRNode.RightHand);
 
         BuildRigModes(rig, head, leftTarget, rightTarget, leftHand, rightHand);
+
+        // 게임 시스템이 참조할 유일한 플레이어 창구.
+        playerRig = rig.AddComponent<PlayerRig>();
+        var rigSo = new SerializedObject(playerRig);
+        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "head", head);
+        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftTarget);
+        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightTarget);
+        MakeAssetsUtil.SetRef(rigSo, "body", playerBody);
+        rigSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 타워는 물리 손이 곧 로코모션이라 별도 드라이버 컴포넌트가 없다. 리그 이동을 밖에서
+        // 관측해 속도를 보고하게 한다 — 나중에 외부 로코모션 패키지를 얹어도 이 경로가 그대로 쓰인다.
+        var observer = rig.AddComponent<ObservedLocomotionDriver>();
+        var observerSo = new SerializedObject(observer);
+        MakeAssetsUtil.SetRef(observerSo, "observed", rig.transform);
+        MakeAssetsUtil.SetRef(observerSo, "observedBody", playerBody);
+        observerSo.ApplyModifiedPropertiesWithoutUndo();
 
         // 리그 전체를 잡기 판정에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
         SetLayerRecursively(rig, IgnoreRaycastLayer);
@@ -306,7 +324,7 @@ public static class TowerSceneBuilder
 
     // ────────────────────────────── Directors ──────────────────────────────
 
-    private static void BuildDirectors(GameObject rig, Rigidbody playerBody, Transform startPoint,
+    private static void BuildDirectors(GameObject rig, PlayerRig playerRig, Transform startPoint,
         GameObject blockPrefab, VRHandController leftHand, VRHandController rightHand, TowerHUD hud)
     {
         var directors = new GameObject("TowerDirectors");
@@ -321,13 +339,13 @@ public static class TowerSceneBuilder
 
         var fall = directors.AddComponent<FallManager>();
         var fallSo = new SerializedObject(fall);
-        MakeAssetsUtil.SetRef(fallSo, "playerBody", playerBody);
+        MakeAssetsUtil.SetRef(fallSo, "player", playerRig);
         SetObjectArray(fallSo, "hands", handArray);
         fallSo.ApplyModifiedPropertiesWithoutUndo();
 
         var run = directors.AddComponent<TowerRunManager>();
         var runSo = new SerializedObject(run);
-        MakeAssetsUtil.SetRef(runSo, "playerBody", playerBody);
+        MakeAssetsUtil.SetRef(runSo, "player", playerRig);
         MakeAssetsUtil.SetRef(runSo, "startPoint", startPoint);
         MakeAssetsUtil.SetRef(runSo, "tower", tower);
         MakeAssetsUtil.SetRef(runSo, "fallManager", fall);
