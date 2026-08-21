@@ -1,0 +1,32 @@
+# Unity 생성 폴더 — 이 파일이 "My project/" 기준으로 앵커되므로 루트 .gitignore와 별개로 필요하다.
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+/[Aa]ssets/AssetStoreTools*
+
+# 자동 생성되는 솔루션/프로젝트 파일
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.tmp
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Crash 리포트
+sysinfo.txt
+crashlytics-build.properties
