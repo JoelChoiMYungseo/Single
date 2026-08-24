@@ -104,3 +104,12 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# ── 참고용 외부 다운로드 (저장소에 넣지 않음) ────────────────────────
+# 프로젝트 소스가 아니라 참고 자료다. 커밋하면 저장소가 수백 MB로 불어나고,
+# GT_CustomMapExample은 CC BY-NC-SA 4.0(비상업 + 동일조건변경허락)이라
+# 상업 출시 시 제약이 걸린다. 코드를 쓸 거라면 필요한 파일만
+# "My project/Assets/ThirdParty/" 아래로 복사해 출처와 라이선스를 남긴다.
+/GT_CustomMapExample-main/
+/GorillaLocomotion-main/
+/claude base (2)/
