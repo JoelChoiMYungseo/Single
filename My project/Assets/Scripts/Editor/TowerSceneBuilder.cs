@@ -14,7 +14,7 @@ using VRGame.Tower;
 /// <summary>"Crumbling Tower" 씬을 통째로 구성한다. 씬 파일이 없으면 새로 만든다.</summary>
 public static class TowerSceneBuilder
 {
-    private const string ScenePath = "Assets/Scenes/CrumblingTower.unity";
+    private const string ScenePath = "Assets/Scenes/GAME3 tower.unity";
     private const string PrefabFolder = "Assets/Prefabs/Tower";
     private const string MaterialFolder = "Assets/Materials/Tower";
     private const string BlockPrefabPath = PrefabFolder + "/UnstableBlock.prefab";
@@ -43,7 +43,7 @@ public static class TowerSceneBuilder
         // 프리팹 생성은 임시 오브젝트를 만들므로 반드시 대상 씬을 연 뒤에 한다.
         GameObject blockPrefab = BuildBlockPrefab();
 
-        RemoveDefaultCamera();
+        MakeAssetsUtil.RemoveDefaultCamera();
         BuildEnvironment();
 
         GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint,
@@ -70,14 +70,6 @@ public static class TowerSceneBuilder
         return created;
     }
 
-    private static void RemoveDefaultCamera()
-    {
-        GameObject existing = GameObject.Find("Main Camera");
-        if (existing != null)
-        {
-            Object.DestroyImmediate(existing);
-        }
-    }
 
     // ────────────────────────────── Prefab ──────────────────────────────
 
@@ -87,7 +79,7 @@ public static class TowerSceneBuilder
     {
         var root = GameObject.CreatePrimitive(PrimitiveType.Cube);
         root.name = "UnstableBlock";
-        root.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("BlockMat", new Color(0.72f, 0.66f, 0.52f));
+        root.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "BlockMat", new Color(0.72f, 0.66f, 0.52f));
 
         var body = root.AddComponent<Rigidbody>();
         body.mass = 6f;
@@ -96,7 +88,7 @@ public static class TowerSceneBuilder
 
         root.AddComponent<UnstableBlock>();
 
-        return SavePrefab(root, BlockPrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, BlockPrefabPath);
     }
 
     // ────────────────────────────── Environment ──────────────────────────────
@@ -107,14 +99,14 @@ public static class TowerSceneBuilder
         ground.name = "Ground";
         ground.transform.position = new Vector3(0f, -1f, 0f);
         ground.transform.localScale = new Vector3(40f, 2f, 40f);
-        ground.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("GroundMat", new Color(0.18f, 0.19f, 0.22f));
+        ground.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "GroundMat", new Color(0.18f, 0.19f, 0.22f));
 
         // 타워 밑동을 받쳐 주는 단단한 대. 여기가 무너지면 게임이 시작조차 안 된다.
         var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cube);
         pedestal.name = "Pedestal";
         pedestal.transform.position = new Vector3(0f, -0.15f, 0f);
         pedestal.transform.localScale = new Vector3(2.4f, 0.3f, 2.4f);
-        pedestal.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("PedestalMat", new Color(0.3f, 0.28f, 0.3f));
+        pedestal.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "PedestalMat", new Color(0.3f, 0.28f, 0.3f));
 
         if (GameObject.Find("Directional Light") == null)
         {
@@ -174,7 +166,7 @@ public static class TowerSceneBuilder
         observerSo.ApplyModifiedPropertiesWithoutUndo();
 
         // 리그 전체를 잡기 판정에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
-        SetLayerRecursively(rig, IgnoreRaycastLayer);
+        MakeAssetsUtil.SetLayerRecursively(rig, IgnoreRaycastLayer);
 
         var startGo = new GameObject("StartPoint");
         startGo.transform.position = rig.transform.position;
@@ -195,7 +187,7 @@ public static class TowerSceneBuilder
         head.AddComponent<AudioListener>();
 
         var tracker = head.AddComponent<XRNodeTracker>();
-        SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
+        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
         return head.transform;
     }
 
@@ -207,7 +199,7 @@ public static class TowerSceneBuilder
         target.transform.localPosition = localPosition;
 
         var tracker = target.AddComponent<XRNodeTracker>();
-        SetEnum(new SerializedObject(tracker), "node", (int)node);
+        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)node);
         return target.transform;
     }
 
@@ -221,7 +213,7 @@ public static class TowerSceneBuilder
         hand.transform.SetParent(parent, false);
         hand.transform.position = target.position;
         hand.transform.localScale = Vector3.one * 0.11f;
-        hand.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("HandMat", new Color(0.9f, 0.75f, 0.6f));
+        hand.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "HandMat", new Color(0.9f, 0.75f, 0.6f));
 
         var handBody = hand.AddComponent<Rigidbody>();
         handBody.useGravity = false;
@@ -230,8 +222,8 @@ public static class TowerSceneBuilder
         var so = new SerializedObject(controller);
         MakeAssetsUtil.SetRef(so, "trackedTarget", target);
         MakeAssetsUtil.SetRef(so, "playerBody", playerBody);
-        SetEnum(so, "handNode", (int)node);
-        SetLayerMask(so, "grabbableMask", GrabbableMask);
+        MakeAssetsUtil.SetEnum(so, "handNode", (int)node);
+        MakeAssetsUtil.SetLayerMask(so, "grabbableMask", GrabbableMask);
         so.ApplyModifiedPropertiesWithoutUndo();
 
         return controller;
@@ -254,8 +246,8 @@ public static class TowerSceneBuilder
 
         var switcher = rig.AddComponent<XRModeSwitcher>();
         var switcherSo = new SerializedObject(switcher);
-        SetObjectArray(switcherSo, "vrOnly", trackers);
-        SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
+        MakeAssetsUtil.SetObjectArray(switcherSo, "vrOnly", trackers);
+        MakeAssetsUtil.SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
         switcherSo.ApplyModifiedPropertiesWithoutUndo();
 
         // 그립 입력 출처는 PlaceholderClimbRig가 자기 OnEnable/OnDisable에서 전환하므로
@@ -280,10 +272,10 @@ public static class TowerSceneBuilder
 
         var hud = canvasGo.AddComponent<TowerHUD>();
 
-        Text height = CreateText(rect, "HeightLabel", "0.0 m", 60, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(28f, -18f));
-        Text best = CreateText(rect, "BestLabel", "최고 0.0 m", 34, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(28f, -92f));
-        Text state = CreateText(rect, "StateLabel", string.Empty, 54, TextAnchor.LowerCenter, new Vector2(0.5f, 0f), new Vector2(0f, 24f));
-        Text budget = CreateText(rect, "BudgetLabel", "물리 블록 0/0", 26, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-28f, -18f));
+        Text height = MakeAssetsUtil.CreateText(rect, "HeightLabel", "0.0 m", 60, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(28f, -18f));
+        Text best = MakeAssetsUtil.CreateText(rect, "BestLabel", "최고 0.0 m", 34, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(28f, -92f));
+        Text state = MakeAssetsUtil.CreateText(rect, "StateLabel", string.Empty, 54, TextAnchor.LowerCenter, new Vector2(0.5f, 0f), new Vector2(0f, 24f));
+        Text budget = MakeAssetsUtil.CreateText(rect, "BudgetLabel", "물리 블록 0/0", 26, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-28f, -18f));
 
         var so = new SerializedObject(hud);
         MakeAssetsUtil.SetRef(so, "heightLabel", height);
@@ -295,32 +287,6 @@ public static class TowerSceneBuilder
         return hud;
     }
 
-    private static Text CreateText(Transform parent, string name, string content, int fontSize,
-        TextAnchor alignment, Vector2 anchor, Vector2 anchoredPosition)
-    {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-        go.transform.SetParent(parent, false);
-
-        var rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = anchor;
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(520f, 80f);
-
-        var text = go.GetComponent<Text>();
-        text.text = content;
-        text.fontSize = fontSize;
-        text.alignment = alignment;
-        text.color = Color.white;
-        text.raycastTarget = false;
-        text.supportRichText = false;
-        text.horizontalOverflow = HorizontalWrapMode.Overflow;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
-        return text;
-    }
 
     // ────────────────────────────── Directors ──────────────────────────────
 
@@ -334,13 +300,13 @@ public static class TowerSceneBuilder
         var towerSo = new SerializedObject(tower);
         MakeAssetsUtil.SetRef(towerSo, "blockPrefab", blockPrefab.GetComponent<UnstableBlock>());
         MakeAssetsUtil.SetRef(towerSo, "player", rig.transform);
-        SetInt(towerSo, "maxSimulatedBlocks", SimulatedBlockBudget);
+        MakeAssetsUtil.SetInt(towerSo, "maxSimulatedBlocks", SimulatedBlockBudget);
         towerSo.ApplyModifiedPropertiesWithoutUndo();
 
         var fall = directors.AddComponent<FallManager>();
         var fallSo = new SerializedObject(fall);
         MakeAssetsUtil.SetRef(fallSo, "player", playerRig);
-        SetObjectArray(fallSo, "hands", handArray);
+        MakeAssetsUtil.SetObjectArray(fallSo, "hands", handArray);
         fallSo.ApplyModifiedPropertiesWithoutUndo();
 
         var run = directors.AddComponent<TowerRunManager>();
@@ -349,99 +315,19 @@ public static class TowerSceneBuilder
         MakeAssetsUtil.SetRef(runSo, "startPoint", startPoint);
         MakeAssetsUtil.SetRef(runSo, "tower", tower);
         MakeAssetsUtil.SetRef(runSo, "fallManager", fall);
-        SetObjectArray(runSo, "hands", handArray);
+        MakeAssetsUtil.SetObjectArray(runSo, "hands", handArray);
         MakeAssetsUtil.SetRef(runSo, "hud", hud);
-        SetInt(runSo, "simulatedBudgetForDisplay", SimulatedBlockBudget);
+        MakeAssetsUtil.SetInt(runSo, "simulatedBudgetForDisplay", SimulatedBlockBudget);
         runSo.ApplyModifiedPropertiesWithoutUndo();
     }
 
     // ────────────────────────────── Helpers ──────────────────────────────
 
-    private static void SetLayerRecursively(GameObject go, int layer)
-    {
-        go.layer = layer;
-        foreach (Transform child in go.transform)
-        {
-            SetLayerRecursively(child.gameObject, layer);
-        }
-    }
 
-    private static void SetObjectArray(SerializedObject so, string field, Object[] values)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Tower] 필드 없음: {field}");
-            return;
-        }
 
-        prop.arraySize = values.Length;
-        for (int i = 0; i < values.Length; i++)
-        {
-            prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
-        }
-    }
 
-    private static void SetLayerMask(SerializedObject so, string field, int mask)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Tower] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = mask;
-    }
 
-    private static void SetInt(SerializedObject so, string field, int value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Tower] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = value;
-    }
 
-    private static void SetEnum(SerializedObject so, string field, int value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Tower] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = value;
-        so.ApplyModifiedPropertiesWithoutUndo();
-    }
 
-    private static Material MakeMaterial(string name, Color color)
-    {
-        string path = $"{MaterialFolder}/{name}.mat";
-        var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (existing != null)
-        {
-            existing.color = color;
-            return existing;
-        }
-
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Standard");
-        }
-
-        var material = new Material(shader) { color = color };
-        AssetDatabase.CreateAsset(material, path);
-        return material;
-    }
-
-    private static GameObject SavePrefab(GameObject root, string path)
-    {
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-        Object.DestroyImmediate(root);
-        return saved;
-    }
 }
 #endif

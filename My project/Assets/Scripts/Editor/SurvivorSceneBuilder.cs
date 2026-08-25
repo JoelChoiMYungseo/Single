@@ -10,11 +10,11 @@ using VRGame.Core;
 using VRGame.Danmaku;
 using VRGame.Survivor;
 
-/// <summary>탕탕특공대 스타일 런을 SampleScene에 통째로 구성한다. 프리팹·머티리얼·UI를 코드로 만들고
+/// <summary>탕탕특공대 스타일 런을 "Game1 tang" 씬에 통째로 구성한다. 프리팹·머티리얼·UI를 코드로 만들고
 /// 씬에 이미 있는 오브젝트(Player / Enemy Boss / GameManger / Plan)를 찾아 재사용한다.</summary>
 public static class SurvivorSceneBuilder
 {
-    private const string ScenePath = "Assets/Scenes/SampleScene.unity";
+    private const string ScenePath = "Assets/Scenes/Game1 tang.unity";
     private const string PrefabFolder = "Assets/Prefabs/Survivor";
     private const string MaterialFolder = "Assets/Materials/Survivor";
 
@@ -74,37 +74,37 @@ public static class SurvivorSceneBuilder
         root.AddComponent<SwarmEnemy>();
 
         var so = new SerializedObject(target);
-        SetFloat(so, "defaultMaxHealth", 20f);
-        SetInt(so, "experienceValue", 1);
+        MakeAssetsUtil.SetFloat(so, "defaultMaxHealth", 20f);
+        MakeAssetsUtil.SetInt(so, "experienceValue", 1);
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        AddVisual(root, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeMaterial("EnemyMat", new Color(0.75f, 0.18f, 0.18f)));
+        AddVisual(root, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "EnemyMat", new Color(0.75f, 0.18f, 0.18f)));
 
-        return SavePrefab(root, EnemyPrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, EnemyPrefabPath);
     }
 
     private static GameObject BuildProjectilePrefab()
     {
         var root = new GameObject("PlayerProjectile");
         root.AddComponent<PlayerProjectile>();
-        AddVisual(root, PrimitiveType.Sphere, Vector3.zero, MakeMaterial("ProjectileMat", new Color(1f, 0.85f, 0.2f)), Vector3.one * 0.35f);
-        return SavePrefab(root, ProjectilePrefabPath);
+        AddVisual(root, PrimitiveType.Sphere, Vector3.zero, MakeAssetsUtil.MakeMaterial(MaterialFolder, "ProjectileMat", new Color(1f, 0.85f, 0.2f)), Vector3.one * 0.35f);
+        return MakeAssetsUtil.SavePrefab(root, ProjectilePrefabPath);
     }
 
     private static GameObject BuildGemPrefab()
     {
         var root = new GameObject("ExperienceGem");
         root.AddComponent<ExperienceGem>();
-        AddVisual(root, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), MakeMaterial("GemMat", new Color(0.2f, 0.9f, 0.5f)), Vector3.one * 0.3f);
-        return SavePrefab(root, GemPrefabPath);
+        AddVisual(root, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "GemMat", new Color(0.2f, 0.9f, 0.5f)), Vector3.one * 0.3f);
+        return MakeAssetsUtil.SavePrefab(root, GemPrefabPath);
     }
 
     private static GameObject BuildDanmakuPrefab()
     {
         var root = new GameObject("DanmakuBullet");
         root.AddComponent<DanmakuBullet>();
-        AddVisual(root, PrimitiveType.Sphere, Vector3.zero, MakeMaterial("DanmakuMat", new Color(0.8f, 0.3f, 1f)), Vector3.one * 0.4f);
-        return SavePrefab(root, DanmakuPrefabPath);
+        AddVisual(root, PrimitiveType.Sphere, Vector3.zero, MakeAssetsUtil.MakeMaterial(MaterialFolder, "DanmakuMat", new Color(0.8f, 0.3f, 1f)), Vector3.one * 0.4f);
+        return MakeAssetsUtil.SavePrefab(root, DanmakuPrefabPath);
     }
 
     // ────────────────────────────── Scene objects ──────────────────────────────
@@ -125,7 +125,7 @@ public static class SurvivorSceneBuilder
         var renderer = arena.GetComponent<MeshRenderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = MakeMaterial("ArenaMat", new Color(0.16f, 0.17f, 0.2f));
+            renderer.sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "ArenaMat", new Color(0.16f, 0.17f, 0.2f));
         }
 
         return arena;
@@ -147,14 +147,14 @@ public static class SurvivorSceneBuilder
         if (hasOwnVisual)
         {
             player.transform.position = new Vector3(0f, 0.5f, 0f);
-            player.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("PlayerMat", new Color(0.25f, 0.6f, 1f));
+            player.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "PlayerMat", new Color(0.25f, 0.6f, 1f));
         }
         else
         {
             player.transform.position = Vector3.zero;
             if (player.transform.Find("Visual") == null)
             {
-                AddVisual(player, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeMaterial("PlayerMat", new Color(0.25f, 0.6f, 1f)));
+                AddVisual(player, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "PlayerMat", new Color(0.25f, 0.6f, 1f)));
             }
         }
 
@@ -194,18 +194,18 @@ public static class SurvivorSceneBuilder
         EnsureComponent<ZombieDanmakuAI>(boss);
 
         var targetSo = new SerializedObject(boss.GetComponent<EnemyTarget>());
-        SetFloat(targetSo, "defaultMaxHealth", 1500f);
-        SetInt(targetSo, "experienceValue", 40);
+        MakeAssetsUtil.SetFloat(targetSo, "defaultMaxHealth", 1500f);
+        MakeAssetsUtil.SetInt(targetSo, "experienceValue", 40);
         targetSo.ApplyModifiedPropertiesWithoutUndo();
 
         var bossRenderer = boss.GetComponent<MeshRenderer>();
         if (bossRenderer != null)
         {
-            bossRenderer.sharedMaterial = MakeMaterial("BossMat", new Color(0.5f, 0.1f, 0.55f));
+            bossRenderer.sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "BossMat", new Color(0.5f, 0.1f, 0.55f));
         }
         else if (boss.transform.Find("Visual") == null)
         {
-            AddVisual(boss, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeMaterial("BossMat", new Color(0.5f, 0.1f, 0.55f)));
+            AddVisual(boss, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "BossMat", new Color(0.5f, 0.1f, 0.55f)));
         }
 
         Transform firePoint = boss.transform.Find("FirePoint");
@@ -523,9 +523,9 @@ public static class SurvivorSceneBuilder
         MakeAssetsUtil.SetRef(upgradeSo, "health", health);
         MakeAssetsUtil.SetRef(upgradeSo, "experience", experience);
         MakeAssetsUtil.SetRef(upgradeSo, "panel", hud.UpgradePanel);
-        SetObjectArray(upgradeSo, "choiceButtons", hud.Buttons);
-        SetObjectArray(upgradeSo, "choiceTitles", hud.Titles);
-        SetObjectArray(upgradeSo, "choiceDescriptions", hud.Descriptions);
+        MakeAssetsUtil.SetObjectArray(upgradeSo, "choiceButtons", hud.Buttons);
+        MakeAssetsUtil.SetObjectArray(upgradeSo, "choiceTitles", hud.Titles);
+        MakeAssetsUtil.SetObjectArray(upgradeSo, "choiceDescriptions", hud.Descriptions);
         upgradeSo.ApplyModifiedPropertiesWithoutUndo();
 
         var bossAiSo = new SerializedObject(boss.GetComponent<ZombieDanmakuAI>());
@@ -588,65 +588,9 @@ public static class SurvivorSceneBuilder
         return AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
     }
 
-    private static Material MakeMaterial(string name, Color color)
-    {
-        string path = $"{MaterialFolder}/{name}.mat";
-        var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (existing != null)
-        {
-            existing.color = color;
-            return existing;
-        }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-        var material = new Material(shader) { color = color };
-        AssetDatabase.CreateAsset(material, path);
-        return material;
-    }
 
-    private static GameObject SavePrefab(GameObject root, string path)
-    {
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-        Object.DestroyImmediate(root);
-        return saved;
-    }
 
-    private static void SetFloat(SerializedObject so, string field, float value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Survivor] 필드 없음: {field}");
-            return;
-        }
-        prop.floatValue = value;
-    }
 
-    private static void SetInt(SerializedObject so, string field, int value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Survivor] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = value;
-    }
-
-    private static void SetObjectArray(SerializedObject so, string field, Object[] values)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Survivor] 필드 없음: {field}");
-            return;
-        }
-
-        prop.arraySize = values.Length;
-        for (int i = 0; i < values.Length; i++)
-        {
-            prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
-        }
-    }
 }
 #endif

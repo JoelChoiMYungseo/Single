@@ -14,7 +14,7 @@ using VRGame.Survivor;
 /// 서로 연결한 뒤 씬을 저장한다.</summary>
 public static class SamuSceneBuilder
 {
-    private const string ScenePath = "Assets/Scenes/Samu.unity";
+    private const string ScenePath = "Assets/Scenes/Game2 samu.unity";
     private const string PrefabFolder = "Assets/Prefabs/Samurai";
     private const string MaterialFolder = "Assets/Materials/Samurai";
 
@@ -53,7 +53,7 @@ public static class SamuSceneBuilder
         GameObject enemyPiecePrefab = BuildEnemyPiecePrefab();
         GameObject enemyPrefab = BuildEnemyPrefab(enemyPiecePrefab);
 
-        RemoveDefaultCamera();
+        MakeAssetsUtil.RemoveDefaultCamera();
         BuildGround();
         BuildBambooForest(bambooPrefab);
         Transform hazardVisual = BuildHazardVisual();
@@ -72,14 +72,6 @@ public static class SamuSceneBuilder
 
     /// <summary>빈 씬에 있던 기본 카메라를 없앤다. 리그에 카메라를 새로 달기 때문에 그대로 두면
     /// MainCamera 태그와 AudioListener가 중복된다.</summary>
-    private static void RemoveDefaultCamera()
-    {
-        GameObject existing = GameObject.Find("Main Camera");
-        if (existing != null)
-        {
-            Object.DestroyImmediate(existing);
-        }
-    }
 
     // ────────────────────────────── Prefabs ──────────────────────────────
 
@@ -87,13 +79,13 @@ public static class SamuSceneBuilder
     {
         var root = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         root.name = "BambooPiece";
-        root.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("BambooMat", new Color(0.42f, 0.6f, 0.28f));
+        root.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "BambooMat", new Color(0.42f, 0.6f, 0.28f));
 
         var body = root.AddComponent<Rigidbody>();
         body.useGravity = true;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        return SavePrefab(root, BambooPiecePrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, BambooPiecePrefabPath);
     }
 
     private static GameObject BuildBambooPrefab(GameObject piecePrefab)
@@ -108,27 +100,27 @@ public static class SamuSceneBuilder
         stalk.name = "Stalk";
         stalk.transform.SetParent(root.transform, false);
         Object.DestroyImmediate(stalk.GetComponent<Collider>()); // 충돌은 루트 캡슐만 담당
-        stalk.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("BambooMat", new Color(0.42f, 0.6f, 0.28f));
+        stalk.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "BambooMat", new Color(0.42f, 0.6f, 0.28f));
 
         var so = new SerializedObject(bamboo);
         MakeAssetsUtil.SetRef(so, "stalk", stalk.transform);
         MakeAssetsUtil.SetRef(so, "piecePrefab", piecePrefab);
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        return SavePrefab(root, BambooPrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, BambooPrefabPath);
     }
 
     private static GameObject BuildEnemyPiecePrefab()
     {
         var root = GameObject.CreatePrimitive(PrimitiveType.Cube);
         root.name = "OniPiece";
-        root.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("OniMat", new Color(0.62f, 0.14f, 0.2f));
+        root.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "OniMat", new Color(0.62f, 0.14f, 0.2f));
 
         var body = root.AddComponent<Rigidbody>();
         body.useGravity = true;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        return SavePrefab(root, EnemyPiecePrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, EnemyPiecePrefabPath);
     }
 
     /// <summary>떠다니는 오니. 콜라이더는 트리거로 둔다 — 슬라이서의 OverlapCapsule은 트리거도
@@ -143,18 +135,18 @@ public static class SamuSceneBuilder
         collider.radius = 0.55f;
         collider.isTrigger = true;
 
-        Material oniMaterial = MakeMaterial("OniMat", new Color(0.62f, 0.14f, 0.2f));
+        Material oniMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "OniMat", new Color(0.62f, 0.14f, 0.2f));
         AddChildPrimitive(root.transform, "Body", PrimitiveType.Capsule, Vector3.zero, Vector3.one * 0.55f, oniMaterial);
         AddChildPrimitive(root.transform, "HornL", PrimitiveType.Cube, new Vector3(-0.16f, 0.42f, 0f),
-            new Vector3(0.07f, 0.28f, 0.07f), MakeMaterial("HornMat", new Color(0.92f, 0.9f, 0.82f)));
+            new Vector3(0.07f, 0.28f, 0.07f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "HornMat", new Color(0.92f, 0.9f, 0.82f)));
         AddChildPrimitive(root.transform, "HornR", PrimitiveType.Cube, new Vector3(0.16f, 0.42f, 0f),
-            new Vector3(0.07f, 0.28f, 0.07f), MakeMaterial("HornMat", new Color(0.92f, 0.9f, 0.82f)));
+            new Vector3(0.07f, 0.28f, 0.07f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "HornMat", new Color(0.92f, 0.9f, 0.82f)));
 
         var so = new SerializedObject(enemy);
         MakeAssetsUtil.SetRef(so, "piecePrefab", piecePrefab);
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        return SavePrefab(root, EnemyPrefabPath);
+        return MakeAssetsUtil.SavePrefab(root, EnemyPrefabPath);
     }
 
     // ────────────────────────────── Level ──────────────────────────────
@@ -165,7 +157,7 @@ public static class SamuSceneBuilder
         ground.name = "Ground";
         ground.transform.position = new Vector3(0f, -0.5f, 0f);
         ground.transform.localScale = new Vector3(80f, 1f, 80f);
-        ground.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("GroundMat", new Color(0.2f, 0.24f, 0.19f));
+        ground.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "GroundMat", new Color(0.2f, 0.24f, 0.19f));
     }
 
     /// <summary>아래에서 올라오는 위협의 시각 표현. 충돌 판정은 RisingHazard가 높이 비교로 하므로
@@ -177,7 +169,7 @@ public static class SamuSceneBuilder
         hazard.transform.position = new Vector3(0f, -8f, 0f);
         hazard.transform.localScale = new Vector3(120f, 0.6f, 120f);
         Object.DestroyImmediate(hazard.GetComponent<Collider>());
-        hazard.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial("HazardMat", new Color(0.55f, 0.12f, 0.16f));
+        hazard.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "HazardMat", new Color(0.55f, 0.12f, 0.16f));
         return hazard.transform;
     }
 
@@ -205,7 +197,7 @@ public static class SamuSceneBuilder
     {
         var towerRoot = new GameObject("AscentTower").transform;
         var random = new System.Random(77281);
-        Material platformMaterial = MakeMaterial("PlatformMat", new Color(0.35f, 0.3f, 0.26f));
+        Material platformMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "PlatformMat", new Color(0.35f, 0.3f, 0.26f));
 
         for (int i = 0; i < PlatformCount; i++)
         {
@@ -273,7 +265,7 @@ public static class SamuSceneBuilder
     {
         var bamboo = instance.GetComponent<BreakableBamboo>();
         var so = new SerializedObject(bamboo);
-        SetFloat(so, "height", height);
+        MakeAssetsUtil.SetFloat(so, "height", height);
         so.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedProperty radiusProp = so.FindProperty("radius");
@@ -317,7 +309,7 @@ public static class SamuSceneBuilder
         var locomotionSo = new SerializedObject(locomotion);
         MakeAssetsUtil.SetRef(locomotionSo, "katanaTip", bladeTip);
         MakeAssetsUtil.SetRef(locomotionSo, "freeHand", leftHand);
-        SetLayerMask(locomotionSo, "environmentMask", EnvironmentMask);
+        MakeAssetsUtil.SetLayerMask(locomotionSo, "environmentMask", EnvironmentMask);
         locomotionSo.ApplyModifiedPropertiesWithoutUndo();
 
         BuildRigModes(rig, head, rightHand, leftHand);
@@ -334,7 +326,7 @@ public static class SamuSceneBuilder
         rigSo.ApplyModifiedPropertiesWithoutUndo();
 
         // 리그 전체(카메라·손·칼 포함)를 물리 쿼리에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
-        SetLayerRecursively(rig, IgnoreRaycastLayer);
+        MakeAssetsUtil.SetLayerRecursively(rig, IgnoreRaycastLayer);
 
         var startGo = new GameObject("StartPoint");
         startGo.transform.position = rig.transform.position;
@@ -355,7 +347,7 @@ public static class SamuSceneBuilder
         head.AddComponent<AudioListener>();
 
         var tracker = head.AddComponent<XRNodeTracker>();
-        SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
+        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
         return head.transform;
     }
 
@@ -366,7 +358,7 @@ public static class SamuSceneBuilder
         hand.transform.localPosition = localPosition;
 
         var tracker = hand.AddComponent<XRNodeTracker>();
-        SetEnum(new SerializedObject(tracker), "node", (int)node);
+        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)node);
         return hand.transform;
     }
 
@@ -379,9 +371,9 @@ public static class SamuSceneBuilder
         katana.transform.SetParent(hand, false);
 
         AddChildPrimitive(katana.transform, "Handle", PrimitiveType.Cube, new Vector3(0f, 0f, -0.12f),
-            new Vector3(0.035f, 0.035f, 0.24f), MakeMaterial("HandleMat", new Color(0.1f, 0.1f, 0.12f)));
+            new Vector3(0.035f, 0.035f, 0.24f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "HandleMat", new Color(0.1f, 0.1f, 0.12f)));
         AddChildPrimitive(katana.transform, "Blade", PrimitiveType.Cube, new Vector3(0f, 0f, 0.42f),
-            new Vector3(0.012f, 0.05f, 0.84f), MakeMaterial("BladeMat", new Color(0.85f, 0.87f, 0.92f)));
+            new Vector3(0.012f, 0.05f, 0.84f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "BladeMat", new Color(0.85f, 0.87f, 0.92f)));
 
         Transform bladeBase = AddMarker(katana.transform, "BladeBase", new Vector3(0f, 0f, 0.02f));
         bladeTip = AddMarker(katana.transform, "BladeTip", new Vector3(0f, 0f, 0.86f));
@@ -390,7 +382,7 @@ public static class SamuSceneBuilder
         var slicerSo = new SerializedObject(slicer);
         MakeAssetsUtil.SetRef(slicerSo, "bladeBase", bladeBase);
         MakeAssetsUtil.SetRef(slicerSo, "bladeTip", bladeTip);
-        SetLayerMask(slicerSo, "sliceableMask", EnvironmentMask);
+        MakeAssetsUtil.SetLayerMask(slicerSo, "sliceableMask", EnvironmentMask);
         slicerSo.ApplyModifiedPropertiesWithoutUndo();
 
         return slicer;
@@ -409,8 +401,8 @@ public static class SamuSceneBuilder
 
         var switcher = rig.AddComponent<XRModeSwitcher>();
         var switcherSo = new SerializedObject(switcher);
-        SetObjectArray(switcherSo, "vrOnly", rig.GetComponentsInChildren<XRNodeTracker>(true));
-        SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
+        MakeAssetsUtil.SetObjectArray(switcherSo, "vrOnly", rig.GetComponentsInChildren<XRNodeTracker>(true));
+        MakeAssetsUtil.SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
         switcherSo.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -435,12 +427,12 @@ public static class SamuSceneBuilder
 
         var hud = canvasGo.AddComponent<SamuHUD>();
 
-        Text zone = CreateText(rect, "ZoneLabel", "구역 1/4", 44, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(30f, -20f));
-        Text height = CreateText(rect, "HeightLabel", "고도 0.0 m", 40, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -20f));
-        Text score = CreateText(rect, "ScoreLabel", "0 점", 52, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -80f));
-        Text combo = CreateText(rect, "ComboLabel", string.Empty, 46, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(30f, -80f));
-        Text falls = CreateText(rect, "FallLabel", "추락 0", 34, TextAnchor.LowerLeft, new Vector2(0f, 0f), new Vector2(30f, 20f));
-        Text warning = CreateText(rect, "WarningLabel", string.Empty, 46, TextAnchor.LowerCenter, new Vector2(0.5f, 0f), new Vector2(0f, 20f));
+        Text zone = MakeAssetsUtil.CreateText(rect, "ZoneLabel", "구역 1/4", 44, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(30f, -20f));
+        Text height = MakeAssetsUtil.CreateText(rect, "HeightLabel", "고도 0.0 m", 40, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -20f));
+        Text score = MakeAssetsUtil.CreateText(rect, "ScoreLabel", "0 점", 52, TextAnchor.UpperRight, new Vector2(1f, 1f), new Vector2(-30f, -80f));
+        Text combo = MakeAssetsUtil.CreateText(rect, "ComboLabel", string.Empty, 46, TextAnchor.UpperLeft, new Vector2(0f, 1f), new Vector2(30f, -80f));
+        Text falls = MakeAssetsUtil.CreateText(rect, "FallLabel", "추락 0", 34, TextAnchor.LowerLeft, new Vector2(0f, 0f), new Vector2(30f, 20f));
+        Text warning = MakeAssetsUtil.CreateText(rect, "WarningLabel", string.Empty, 46, TextAnchor.LowerCenter, new Vector2(0.5f, 0f), new Vector2(0f, 20f));
 
         var so = new SerializedObject(hud);
         MakeAssetsUtil.SetRef(so, "zoneLabel", zone);
@@ -454,32 +446,6 @@ public static class SamuSceneBuilder
         return hud;
     }
 
-    private static Text CreateText(Transform parent, string name, string content, int fontSize,
-        TextAnchor alignment, Vector2 anchor, Vector2 anchoredPosition)
-    {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-        go.transform.SetParent(parent, false);
-
-        var rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = anchor;
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(560f, 70f);
-
-        var text = go.GetComponent<Text>();
-        text.text = content;
-        text.fontSize = fontSize;
-        text.alignment = alignment;
-        text.color = Color.white;
-        text.raycastTarget = false;
-        text.supportRichText = false;
-        text.horizontalOverflow = HorizontalWrapMode.Overflow;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
-        return text;
-    }
 
     // ────────────────────────────── Directors ──────────────────────────────
 
@@ -492,7 +458,7 @@ public static class SamuSceneBuilder
         var explorationSo = new SerializedObject(exploration);
         MakeAssetsUtil.SetRef(explorationSo, "player", playerRig);
         MakeAssetsUtil.SetRef(explorationSo, "startPoint", startPoint);
-        SetLayerMask(explorationSo, "groundMask", EnvironmentMask);
+        MakeAssetsUtil.SetLayerMask(explorationSo, "groundMask", EnvironmentMask);
         explorationSo.ApplyModifiedPropertiesWithoutUndo();
 
         var zones = managerGo.AddComponent<AscentZoneManager>();
@@ -579,93 +545,13 @@ public static class SamuSceneBuilder
         return marker.transform;
     }
 
-    private static void SetLayerRecursively(GameObject go, int layer)
-    {
-        go.layer = layer;
-        foreach (Transform child in go.transform)
-        {
-            SetLayerRecursively(child.gameObject, layer);
-        }
-    }
 
-    private static void SetObjectArray(SerializedObject so, string field, Object[] values)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Samurai] 필드 없음: {field}");
-            return;
-        }
 
-        prop.arraySize = values.Length;
-        for (int i = 0; i < values.Length; i++)
-        {
-            prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
-        }
-    }
 
-    private static void SetLayerMask(SerializedObject so, string field, int mask)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Samurai] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = mask;
-    }
-
-    private static void SetFloat(SerializedObject so, string field, float value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Samurai] 필드 없음: {field}");
-            return;
-        }
-        prop.floatValue = value;
-    }
 
     /// <summary>enumValueIndex는 표시 순서 인덱스라 값이 불연속인 enum에서 어긋날 수 있다.
     /// 실제 저장값인 intValue로 넣는다.</summary>
-    private static void SetEnum(SerializedObject so, string field, int value)
-    {
-        SerializedProperty prop = so.FindProperty(field);
-        if (prop == null)
-        {
-            Debug.LogError($"[Samurai] 필드 없음: {field}");
-            return;
-        }
-        prop.intValue = value;
-        so.ApplyModifiedPropertiesWithoutUndo();
-    }
 
-    private static Material MakeMaterial(string name, Color color)
-    {
-        string path = $"{MaterialFolder}/{name}.mat";
-        var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (existing != null)
-        {
-            existing.color = color;
-            return existing;
-        }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Standard");
-        }
-
-        var material = new Material(shader) { color = color };
-        AssetDatabase.CreateAsset(material, path);
-        return material;
-    }
-
-    private static GameObject SavePrefab(GameObject root, string path)
-    {
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-        Object.DestroyImmediate(root);
-        return saved;
-    }
 }
 #endif
