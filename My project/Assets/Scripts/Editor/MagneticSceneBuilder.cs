@@ -1,12 +1,11 @@
 #if UNITY_EDITOR
+using Autohand;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.XR;
 using VRGame.Core;
-using VRGame.Locomotion;
 using VRGame.Magnetic;
 
 /// <summary>"Magnetic Panic: Polar Crash"를 GAME4 씬에 통째로 구성한다. 자력 놀이터(금속 벽 여러 개
@@ -18,17 +17,13 @@ public static class MagneticSceneBuilder
     private const string MaterialFolder = "Assets/Materials/Magnetic";
     private const string HazardPrefabPath = PrefabFolder + "/MagneticHazard.prefab";
 
-    /// <summary>플레이어 리그를 Ignore Raycast(내장 레이어 2)에 두고 자력 조준에서 제외한다 —
-    /// 안 그러면 손이 자기 몸이나 다른 손을 겨눠버린다.</summary>
-    private const int IgnoreRaycastLayer = 2;
-
     [MenuItem("Tools/Magnetic/Build GAME4 Scene")]
     public static void BuildScene()
     {
         MakeAssetsUtil.EnsureFolder(PrefabFolder);
         MakeAssetsUtil.EnsureFolder(MaterialFolder);
 
-        int metalLayer = ResolveMetalLayer();
+        int metalLayer = MakeAssetsUtil.ResolveLayer("Magnetic", "Metal");
 
         if (SceneManager.GetActiveScene().isDirty)
         {
@@ -39,33 +34,20 @@ public static class MagneticSceneBuilder
         GameObject hazardPrefab = BuildHazardPrefab(metalLayer);
 
         MakeAssetsUtil.RemoveDefaultCamera();
+        MakeAssetsUtil.ClearPreviousBuild("Ground", "MetalWalls", "Hazards", "PlayerRig", "Player", "XRPlayer", "MagneticRunManager");
         BuildArena(metalLayer);
         BuildHazards(hazardPrefab);
 
-        GameObject rig = BuildPlayerRig(metalLayer, out PlayerRig playerRig, out Transform head,
-            out MagneticLocomotion locomotion, out CrashHandler crashHandler, out Transform startPoint);
+        GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head,
+            out CrashHandler crashHandler, out Transform startPoint);
         MagneticHUD hud = BuildHud(head);
-        BuildRunManager(playerRig, locomotion, crashHandler, startPoint, hud);
+        BuildRunManager(playerRig, crashHandler, startPoint, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
 
         Debug.Log($"[Magnetic] GAME4 씬 구성 완료 ({rig.name}). Metal 레이어={metalLayer}. ▶ Play 하세요.");
-    }
-
-    /// <summary>TagManager.asset에 이미 추가해 둔 "Metal" 레이어를 찾는다. 못 찾으면(예: 에디터가
-    /// 아직 태그 매니저 변경을 반영하지 못한 경우) Default로 폴백하고 경고를 남긴다.</summary>
-    private static int ResolveMetalLayer()
-    {
-        int layer = LayerMask.NameToLayer("Metal");
-        if (layer < 0)
-        {
-            Debug.LogWarning("[Magnetic] \"Metal\" 레이어를 찾지 못했습니다. ProjectSettings/TagManager.asset을 " +
-                              "확인하거나 Unity를 한 번 포커스해 재로드한 뒤 다시 실행하세요. 임시로 Default 레이어를 씁니다.");
-            return 0;
-        }
-        return layer;
     }
 
 
@@ -97,22 +79,34 @@ public static class MagneticSceneBuilder
         ground.name = "Ground";
         ground.layer = metalLayer;
         ground.transform.position = new Vector3(0f, -0.5f, 0f);
-        ground.transform.localScale = new Vector3(60f, 1f, 60f);
+        ground.transform.localScale = new Vector3(84f, 1f, 84f);
         ground.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "GroundMat", new Color(0.16f, 0.17f, 0.2f));
 
         var wallsRoot = new GameObject("MetalWalls").transform;
         Material wallMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "WallMat", new Color(0.42f, 0.45f, 0.52f));
+        Material vaultMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "VaultMat", new Color(0.55f, 0.22f, 0.2f));
 
         // 정사각형으로 4면 + 위아래 대각선 벽 2개를 더 둬서, 수직/사선 이동도 시험할 수 있게 한다.
-        BuildWall(wallsRoot, new Vector3(0f, 8f, 28f), Vector3.zero, new Vector3(56f, 16f, 1f), wallMaterial, metalLayer);
-        BuildWall(wallsRoot, new Vector3(0f, 8f, -28f), Vector3.zero, new Vector3(56f, 16f, 1f), wallMaterial, metalLayer);
-        BuildWall(wallsRoot, new Vector3(28f, 8f, 0f), new Vector3(0f, 90f, 0f), new Vector3(56f, 16f, 1f), wallMaterial, metalLayer);
-        BuildWall(wallsRoot, new Vector3(-28f, 8f, 0f), new Vector3(0f, 90f, 0f), new Vector3(56f, 16f, 1f), wallMaterial, metalLayer);
-        BuildWall(wallsRoot, new Vector3(0f, 22f, 0f), new Vector3(90f, 0f, 0f), new Vector3(40f, 40f, 1f), wallMaterial, metalLayer);
+        // 아레나를 ±28 → ±38로 넓혀서 더 멀리, 더 빠르게 날아갈 여지를 늘렸다.
+        BuildWall(wallsRoot, new Vector3(0f, 10f, 38f), Vector3.zero, new Vector3(76f, 20f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(0f, 10f, -38f), Vector3.zero, new Vector3(76f, 20f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(38f, 10f, 0f), new Vector3(0f, 90f, 0f), new Vector3(76f, 20f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(-38f, 10f, 0f), new Vector3(0f, 90f, 0f), new Vector3(76f, 20f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(0f, 28f, 0f), new Vector3(90f, 0f, 0f), new Vector3(50f, 50f, 1f), wallMaterial, metalLayer);
 
-        // 중앙 상공에 비스듬한 벽 두 개 — 좌우로 튕겨다니며 극을 급하게 바꿔야 하는 구간.
-        BuildWall(wallsRoot, new Vector3(10f, 12f, 6f), new Vector3(0f, 35f, 0f), new Vector3(14f, 10f, 1f), wallMaterial, metalLayer);
-        BuildWall(wallsRoot, new Vector3(-10f, 12f, -6f), new Vector3(0f, 35f, 0f), new Vector3(14f, 10f, 1f), wallMaterial, metalLayer);
+        // 중앙 상공에 비스듬한 벽들 — 좌우로 튕겨다니며 극을 급하게 바꿔야 하는 구간. 벽을 2개 더 늘려
+        // 상공 전체를 지그재그로 가로질러야 하게 만들었다.
+        BuildWall(wallsRoot, new Vector3(14f, 14f, 8f), new Vector3(0f, 35f, 0f), new Vector3(16f, 11f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(-14f, 14f, -8f), new Vector3(0f, 35f, 0f), new Vector3(16f, 11f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(0f, 20f, 16f), new Vector3(0f, -20f, 0f), new Vector3(16f, 11f, 1f), wallMaterial, metalLayer);
+        BuildWall(wallsRoot, new Vector3(0f, 20f, -16f), new Vector3(0f, -20f, 0f), new Vector3(16f, 11f, 1f), wallMaterial, metalLayer);
+
+        // 위험 구역 — 좁은 4면 방(빨간 벽) 안에 하자드를 잔뜩 몰아넣는다. 고득점/고위험 지역.
+        Vector3 vaultCenter = new Vector3(24f, 5f, -24f);
+        BuildWall(wallsRoot, vaultCenter + new Vector3(0f, 0f, 6f), Vector3.zero, new Vector3(12f, 10f, 1f), vaultMaterial, metalLayer);
+        BuildWall(wallsRoot, vaultCenter + new Vector3(0f, 0f, -6f), Vector3.zero, new Vector3(12f, 10f, 1f), vaultMaterial, metalLayer);
+        BuildWall(wallsRoot, vaultCenter + new Vector3(6f, 0f, 0f), new Vector3(0f, 90f, 0f), new Vector3(12f, 10f, 1f), vaultMaterial, metalLayer);
+        BuildWall(wallsRoot, vaultCenter + new Vector3(-6f, 0f, 0f), new Vector3(0f, 90f, 0f), new Vector3(12f, 10f, 1f), vaultMaterial, metalLayer);
 
         if (GameObject.Find("Directional Light") == null)
         {
@@ -146,6 +140,13 @@ public static class MagneticSceneBuilder
             new Vector3(-5f, 5f, 4f),
             new Vector3(3f, 7f, -6f),
             new Vector3(-4f, 2f, -3f),
+            new Vector3(16f, 10f, 12f),
+            new Vector3(-16f, 8f, -10f),
+            new Vector3(0f, 24f, 4f),
+            // 위험 구역(빨간 벽 안, 24,-,-24 중심) — 하자드를 몰아넣어 고위험 지대로 만든다.
+            new Vector3(22f, 4f, -22f),
+            new Vector3(26f, 6f, -26f),
+            new Vector3(24f, 3f, -24f),
         };
 
         for (int i = 0; i < positions.Length; i++)
@@ -159,47 +160,37 @@ public static class MagneticSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
-    private static GameObject BuildPlayerRig(int metalLayer, out PlayerRig playerRig, out Transform head,
-        out MagneticLocomotion locomotion, out CrashHandler crashHandler, out Transform startPoint)
+    /// <summary>자체 XRNodeTracker 리그 대신 Auto Hand의 XRPlayer 프리팹을 그대로 쓴다 — Survivor/
+    /// Samurai와 동일한 전환. 로코모션은 2026-09-17 세션에서 8개 게임 전체를 "진짜" 고릴라 태그
+    /// 로코모션(Another Axiom MIT 패키지)으로 통일하기로 결정하면서 MagneticLocomotion(자력 발사)을
+    /// 걷어냈다 — 자력 발사/하자드 견인 메커닉은 이 교체로 사실상 죽었다(하자드 오브젝트 자체는
+    /// 물리적 장애물로 남지만 더는 자력으로 상호작용하지 않는다).</summary>
+    private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform head,
+        out CrashHandler crashHandler, out Transform startPoint)
     {
-        var rig = new GameObject("PlayerRig");
-        rig.transform.position = new Vector3(0f, 1.2f, 0f);
+        // 리그 스폰 + 고릴라 태그 로코모션 배선을 공용 헬퍼로 처리한다 —
+        // Survivor/Tower/HoseCleaner/Echo와 동일한 배선이라 AutoHandRigFactory로 승격했다.
+        var rig = AutoHandRigFactory.SpawnWithGorillaLocomotion("Magnetic", "Player", new Vector3(0f, 1.2f, 0f),
+            out AutoHandPlayer autoHandPlayer, out Rigidbody body);
+        body.mass = 70f; // 사람 무게 — MagneticHazard.IsLighterThan 비교 기준(하자드는 여전히 물리 장애물로 남는다).
 
-        locomotion = rig.AddComponent<MagneticLocomotion>(); // Rigidbody 자동 부착
-        crashHandler = rig.AddComponent<CrashHandler>();
+        // [RequireComponent(typeof(Rigidbody))] — Rigidbody는 래퍼(rig)가 아니라
+        // autoHandPlayer.gameObject에 있으므로 반드시 거기 붙여야 그 Rigidbody를 재사용한다.
+        crashHandler = autoHandPlayer.gameObject.AddComponent<CrashHandler>();
 
-        var bodyCollider = rig.AddComponent<CapsuleCollider>();
-        bodyCollider.radius = 0.3f;
-        bodyCollider.height = 1.7f;
-        bodyCollider.center = new Vector3(0f, 0.85f, 0f);
-
-        var body = rig.GetComponent<Rigidbody>();
-        body.mass = 70f; // 사람 무게 — MagneticHazard.IsLighterThan 비교 기준.
-
-        head = BuildHead(rig.transform);
-        Transform leftHand = BuildHandOrigin(rig.transform, "LeftHandOrigin", new Vector3(-0.25f, 1.1f, 0.25f), XRNode.LeftHand);
-        Transform rightHand = BuildHandOrigin(rig.transform, "RightHandOrigin", new Vector3(0.25f, 1.1f, 0.25f), XRNode.RightHand);
-
-        var locomotionSo = new SerializedObject(locomotion);
-        MakeAssetsUtil.SetRef(locomotionSo, "leftHandOrigin", leftHand);
-        MakeAssetsUtil.SetRef(locomotionSo, "rightHandOrigin", rightHand);
-        MakeAssetsUtil.SetRef(locomotionSo, "crashHandler", crashHandler);
-        MakeAssetsUtil.SetLayerMask(locomotionSo, "metalMask", 1 << metalLayer);
-        locomotionSo.ApplyModifiedPropertiesWithoutUndo();
-
-        BuildRigModes(rig, head, leftHand, rightHand, locomotion);
-
-        // 리그 전체(카메라·손 포함)를 자력 조준 대상에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
-        MakeAssetsUtil.SetLayerRecursively(rig, IgnoreRaycastLayer);
+        head = autoHandPlayer.headCamera.transform;
+        Transform leftHand = autoHandPlayer.handLeft.transform;
+        Transform rightHand = autoHandPlayer.handRight.transform;
 
         var startGo = new GameObject("StartPoint");
         startGo.transform.position = rig.transform.position;
         startPoint = startGo.transform;
 
-        // PlayerRig가 참조할 창구. Rigidbody 기반이라 body를 채운다.
+        // PlayerRig가 참조할 창구. root는 래퍼(rig)가 아니라 autoHandPlayer.gameObject다 —
+        // 안 그러면 Position/Teleport가 스폰 위치에 얼어붙는다.
         playerRig = rig.AddComponent<PlayerRig>();
         var rigSo = new SerializedObject(playerRig);
-        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "root", autoHandPlayer.transform);
         MakeAssetsUtil.SetRef(rigSo, "head", head);
         MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
         MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
@@ -207,63 +198,6 @@ public static class MagneticSceneBuilder
         rigSo.ApplyModifiedPropertiesWithoutUndo();
 
         return rig;
-    }
-
-    private static Transform BuildHead(Transform parent)
-    {
-        var head = new GameObject("Head") { tag = "MainCamera" };
-        head.transform.SetParent(parent, false);
-        head.transform.localPosition = new Vector3(0f, 1.6f, 0f);
-
-        var camera = head.AddComponent<Camera>();
-        camera.nearClipPlane = 0.05f;
-        camera.farClipPlane = 500f;
-        head.AddComponent<AudioListener>();
-
-        var tracker = head.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
-        return head.transform;
-    }
-
-    private static Transform BuildHandOrigin(Transform parent, string name, Vector3 localPosition, XRNode node)
-    {
-        var hand = new GameObject(name);
-        hand.transform.SetParent(parent, false);
-        hand.transform.localPosition = localPosition;
-
-        // 조준 방향을 눈으로 확인할 수 있는 작은 구체. 콜라이더는 없다 — 물리 대상이 아니라 표식이다.
-        var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        visual.name = "Visual";
-        visual.transform.SetParent(hand.transform, false);
-        visual.transform.localScale = Vector3.one * 0.09f;
-        Object.DestroyImmediate(visual.GetComponent<Collider>());
-        visual.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "HandMat", new Color(0.85f, 0.8f, 0.3f));
-
-        var tracker = hand.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)node);
-        return hand.transform;
-    }
-
-    /// <summary>VR 추적과 마우스 임시 조작을 둘 다 붙여두고, 실행 시 헤드셋 유무에 따라
-    /// XRModeSwitcher가 알아서 하나만 켠다.</summary>
-    private static void BuildRigModes(GameObject rig, Transform head, Transform leftHand, Transform rightHand,
-        MagneticLocomotion locomotion)
-    {
-        var placeholder = rig.AddComponent<PlaceholderMagneticRig>();
-        var placeholderSo = new SerializedObject(placeholder);
-        MakeAssetsUtil.SetRef(placeholderSo, "head", head);
-        MakeAssetsUtil.SetRef(placeholderSo, "locomotion", locomotion);
-        MakeAssetsUtil.SetRef(placeholderSo, "leftHandOrigin", leftHand);
-        MakeAssetsUtil.SetRef(placeholderSo, "rightHandOrigin", rightHand);
-        placeholderSo.ApplyModifiedPropertiesWithoutUndo();
-
-        var trackers = rig.GetComponentsInChildren<XRNodeTracker>(true);
-
-        var switcher = rig.AddComponent<XRModeSwitcher>();
-        var switcherSo = new SerializedObject(switcher);
-        MakeAssetsUtil.SetObjectArray(switcherSo, "vrOnly", trackers);
-        MakeAssetsUtil.SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
-        switcherSo.ApplyModifiedPropertiesWithoutUndo();
     }
 
     // ────────────────────────────── HUD ──────────────────────────────
@@ -304,7 +238,7 @@ public static class MagneticSceneBuilder
 
     // ────────────────────────────── Run manager ──────────────────────────────
 
-    private static void BuildRunManager(PlayerRig playerRig, MagneticLocomotion locomotion, CrashHandler crashHandler,
+    private static void BuildRunManager(PlayerRig playerRig, CrashHandler crashHandler,
         Transform startPoint, MagneticHUD hud)
     {
         var managerGo = new GameObject("MagneticRunManager");
@@ -312,7 +246,6 @@ public static class MagneticSceneBuilder
 
         var so = new SerializedObject(run);
         MakeAssetsUtil.SetRef(so, "player", playerRig);
-        MakeAssetsUtil.SetRef(so, "locomotion", locomotion);
         MakeAssetsUtil.SetRef(so, "crashHandler", crashHandler);
         MakeAssetsUtil.SetRef(so, "startPoint", startPoint);
         MakeAssetsUtil.SetRef(so, "hud", hud);

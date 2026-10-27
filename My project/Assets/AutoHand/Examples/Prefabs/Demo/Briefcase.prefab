@@ -118,6 +118,9 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -139,6 +142,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -161,6 +165,7 @@ MonoBehaviour:
   isGrabbable: 1
   CopySettings: {fileID: 0}
   grabType: 0
+  grabPoseType: 0
   handType: 0
   singleHandOnly: 1
   instantGrab: 0
@@ -178,6 +183,7 @@ MonoBehaviour:
   ignoreReleaseTime: 0.5
   minHeldDrag: 1.5
   minHeldAngleDrag: 3
+  minHeldMass: 0.1
   maxHeldVelocity: 9
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
@@ -1368,6 +1374,9 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1389,6 +1398,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -1400,10 +1410,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3128974838409622039}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 2
-  m_Drag: 30
-  m_AngularDrag: 30
+  m_LinearDamping: 30
+  m_AngularDamping: 30
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -1438,6 +1448,7 @@ MonoBehaviour:
   isGrabbable: 1
   CopySettings: {fileID: 0}
   grabType: 0
+  grabPoseType: 0
   handType: 0
   singleHandOnly: 0
   instantGrab: 0
@@ -1455,6 +1466,7 @@ MonoBehaviour:
   ignoreReleaseTime: 0.5
   minHeldDrag: 1.5
   minHeldAngleDrag: 3
+  minHeldMass: 0.1
   maxHeldVelocity: 9
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
@@ -2499,6 +2511,9 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2520,6 +2535,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -2743,6 +2759,9 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2764,6 +2783,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -2873,6 +2893,9 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2894,6 +2917,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -2927,6 +2951,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.2
@@ -2989,6 +3017,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.0000000024862867
@@ -3051,6 +3083,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.2
@@ -3113,6 +3149,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.0000000024862867
@@ -3175,6 +3215,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.2
@@ -3237,6 +3281,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.2
@@ -3299,6 +3347,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.2
@@ -3361,6 +3413,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.0000000024862867
@@ -3423,6 +3479,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7753172482659477634}
     m_Modifications:
+    - target: {fileID: 376428461563943621, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 8515371878481805302, guid: 9c9d168272ed2b64f9a9767fd9d7348f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.2

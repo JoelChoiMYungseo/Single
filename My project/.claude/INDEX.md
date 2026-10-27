@@ -51,8 +51,18 @@ QA 방법론 원칙 10개. 이 프로젝트(VR·인디) 맥락으로 적용.
 
 ## Level 2 — Project Domain (이 프로젝트 전용)
 
-> 현재 비어 있음 — Camp Lantern은 신규 프로젝트이며 GDD가 아직 없다.
-> GDD/도메인 문서가 추가되면 여기에 파일 링크와 `keywords`를 등록한다. 구조는 [domain/README.md](domain/README.md) 참조.
+> GDD는 아직 없지만, 실제로 짠 시스템에서 나온 통합 지식은 아래처럼 등록한다.
+> 구조는 [domain/README.md](domain/README.md) 참조.
+
+### [domain/hose-cleaner-auto-hand-integration.md](domain/hose-cleaner-auto-hand-integration.md)
+GAME6(고압 호스)과 Survivor(GAME1, 고릴라 태그) — Auto Hand의 XRPlayer 프리팹을 그대로 가져다 쓰는 통합 패턴. `AutoHandPlayer.body`가 런타임(Awake) 전용 프로퍼티라 빌드 타임엔 null인 함정, `useMovement`를 안 끄면 외부 AddForce가 매 프레임 지워지는 함정, Tower의 VRHandController(물리 손)는 이 패턴으로 옮기면 안 되는 이유 등.
+- **keywords:** Auto Hand, AutoHandPlayer, Grabbable, Hand, IsSqueezing, GetSqueezeAxis, OnGrabEvent, OnSqueezeEvent, XRPlayer, useMovement, moveAcceleration, HoseRecoilLocomotion, SinglePlayerGorillaLocomotion, DirtMonster, ObservedLocomotionDriver, recoil, 반동, 호스, 고릴라, AutoHandRigFactory, GetComponentInChildren, XRHandOffset, NullReferenceException, IgnoreRaycastLayer, FixedJoint
+- **when to read:** Auto Hand 관련 스크립트를 새로 짜거나 수정할 때, 다른 게임에 Auto Hand를 연결할 때(예: Tower의 VRHandController 교체 검토), 플레이어가 힘을 줬는데 안 움직이는 버그를 조사할 때
+
+### [domain/locomotion-driver-contract.md](domain/locomotion-driver-contract.md)
+`PlayerRig`/`ILocomotionDriver` 계약 자체의 범용 설계 원리 — 왜 인터페이스가 딱 2개 멤버(Velocity, OnTeleported)로 최소화됐는지, `ObservedLocomotionDriver`(원본 비수정 관측 어댑터) vs 자체 구현 드라이버의 배선 차이, MIT `GorillaLocomotion` 원본에서 "반작용 원리"만 뽑아 재구현한 이유. 위 hose-cleaner 문서가 "Auto Hand라는 특정 패키지와의 통합 함정"을 다룬다면, 이 문서는 그 밑에 깔린 계약 자체를 다룬다.
+- **keywords:** PlayerRig, ILocomotionDriver, ObservedLocomotionDriver, SinglePlayerGorillaLocomotion, SwordGorillaLocomotion, MagneticLocomotion, PlungerLocomotion, Velocity, OnTeleported, Teleport, 로코모션, 계약, 인터페이스, 반작용, GorillaLocomotion, MIT, 최소 계약, 관측 어댑터
+- **when to read:** 새 프로토타입에 새 로코모션 드라이버를 추가할 때, 외부 MIT/에셋 이동 패키지를 프로젝트에 편입할 때, `ILocomotionDriver`에 멤버를 추가하고 싶어질 때, 순간이동 후 플레이어가 로켓처럼 튕겨나가는 버그를 조사할 때
 
 ---
 

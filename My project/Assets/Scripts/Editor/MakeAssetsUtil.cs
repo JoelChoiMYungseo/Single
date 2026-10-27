@@ -114,6 +114,21 @@ public static class MakeAssetsUtil
         return visual;
     }
 
+    /// <summary>재실행 시 이전에 만든 루트 오브젝트들을 지우고 새로 짓는다. Samurai/Tower/Magnetic/
+    /// Echo 빌더는 "찾아서 재사용"이 아니라 항상 새로 만드는 방식이라, 이게 없으면 빌더를 다시
+    /// 돌릴 때마다(난이도 조정 후 재빌드 등) 씬 오브젝트가 두 배로 불어난다.</summary>
+    public static void ClearPreviousBuild(params string[] rootNames)
+    {
+        foreach (string name in rootNames)
+        {
+            GameObject existing = GameObject.Find(name);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing);
+            }
+        }
+    }
+
     /// <summary>빈 씬에 기본으로 들어있는 카메라를 없앤다. 각 게임의 리그가 자기 카메라를 새로
     /// 달기 때문에, 그대로 두면 MainCamera 태그와 AudioListener가 중복된다.</summary>
     public static void RemoveDefaultCamera()
@@ -153,6 +168,21 @@ public static class MakeAssetsUtil
         GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
         Object.DestroyImmediate(root);
         return saved;
+    }
+
+    /// <summary>TagManager.asset에 이미 추가해 둔 레이어를 이름으로 찾는다. 못 찾으면(예: 에디터가
+    /// 아직 태그 매니저 변경을 반영하지 못한 경우) Default(0)로 폴백하고 경고를 남긴다.
+    /// Magnetic/Cart/Plunger 3개 SceneBuilder가 각자 복사해 갖고 있던 ResolveXLayer를 승격한 것.</summary>
+    public static int ResolveLayer(string gameTag, string layerName)
+    {
+        int layer = LayerMask.NameToLayer(layerName);
+        if (layer < 0)
+        {
+            Debug.LogWarning($"[{gameTag}] \"{layerName}\" 레이어를 찾지 못했습니다. ProjectSettings/TagManager.asset을 " +
+                              "확인하거나 Unity를 한 번 포커스해 재로드한 뒤 다시 실행하세요. 임시로 Default 레이어를 씁니다.");
+            return 0;
+        }
+        return layer;
     }
 
     public static void SetLayerRecursively(GameObject go, int layer)

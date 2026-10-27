@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using Autohand;
 using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -33,16 +34,23 @@ public static class EchoSceneBuilder
         Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
         MakeAssetsUtil.RemoveDefaultCamera();
+        MakeAssetsUtil.ClearPreviousBuild("Ground", "Walls", "NavMeshSurface", "PlayerRig", "Player", "XRPlayer",
+            "SoundAttractedMonster", "SoundAttractedMonster_2", "Goal", "EcholocationVolume", "EchoRunManager");
         BuildMaze();
         BakeNavMesh();
 
         GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head,
             out MicInputListener micListener, out Transform startPoint);
 
-        GameObject monster = BuildMonster(rig.transform, micListener);
+        // 몬스터 2마리 — 서로 다른 배회 시작점을 줘서 미로 양쪽에서 위협이 온다.
+        GameObject monsterA = BuildMonster(rig.transform, micListener, "SoundAttractedMonster", new Vector3(10f, 1f, 10f));
+        GameObject monsterB = BuildMonster(rig.transform, micListener, "SoundAttractedMonster_2", new Vector3(-18f, 1f, -18f));
+        Transform goalPoint = BuildGoal();
+
         BuildEcholocationVolume(micListener);
         EchoHUD hud = BuildHud(head);
-        BuildRunManager(playerRig, micListener, monster.GetComponent<SoundAttractedAI>(), startPoint, hud);
+        var monsters = new SoundAttractedAI[] { monsterA.GetComponent<SoundAttractedAI>(), monsterB.GetComponent<SoundAttractedAI>() };
+        BuildRunManager(playerRig, micListener, monsters, startPoint, goalPoint, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -62,23 +70,28 @@ public static class EchoSceneBuilder
         var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ground.name = "Ground";
         ground.transform.position = new Vector3(0f, -0.5f, 0f);
-        ground.transform.localScale = new Vector3(34f, 1f, 34f);
+        ground.transform.localScale = new Vector3(50f, 1f, 50f);
         ground.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "GroundMat", new Color(0.08f, 0.08f, 0.09f));
 
         var wallsRoot = new GameObject("Walls").transform;
         Material wallMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "WallMat", new Color(0.12f, 0.12f, 0.14f));
 
-        // 바깥 경계 4면.
-        BuildWall(wallsRoot, new Vector3(0f, 2f, 17f), new Vector3(34f, 4f, 1f), wallMaterial);
-        BuildWall(wallsRoot, new Vector3(0f, 2f, -17f), new Vector3(34f, 4f, 1f), wallMaterial);
-        BuildWall(wallsRoot, new Vector3(17f, 2f, 0f), new Vector3(1f, 4f, 34f), wallMaterial);
-        BuildWall(wallsRoot, new Vector3(-17f, 2f, 0f), new Vector3(1f, 4f, 34f), wallMaterial);
+        // 바깥 경계 4면 — 34x34 → 50x50으로 확장해 미로가 길을 잃기 쉬워졌다.
+        BuildWall(wallsRoot, new Vector3(0f, 2f, 25f), new Vector3(50f, 4f, 1f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(0f, 2f, -25f), new Vector3(50f, 4f, 1f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(25f, 2f, 0f), new Vector3(1f, 4f, 50f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(-25f, 2f, 0f), new Vector3(1f, 4f, 50f), wallMaterial);
 
-        // 내부 파티션 — 사각지대와 굽은 통로를 만드는 최소 배치.
+        // 내부 파티션 — 사각지대와 굽은 통로를 겹겹이 늘렸다.
         BuildWall(wallsRoot, new Vector3(-6f, 2f, 6f), new Vector3(1f, 4f, 16f), wallMaterial);
         BuildWall(wallsRoot, new Vector3(6f, 2f, -4f), new Vector3(1f, 4f, 18f), wallMaterial);
         BuildWall(wallsRoot, new Vector3(0f, 2f, 10f), new Vector3(14f, 4f, 1f), wallMaterial);
         BuildWall(wallsRoot, new Vector3(-2f, 2f, -10f), new Vector3(18f, 4f, 1f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(-14f, 2f, 16f), new Vector3(1f, 4f, 14f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(14f, 2f, -16f), new Vector3(1f, 4f, 14f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(-16f, 2f, -6f), new Vector3(14f, 4f, 1f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(16f, 2f, 6f), new Vector3(14f, 4f, 1f), wallMaterial);
+        BuildWall(wallsRoot, new Vector3(0f, 2f, -20f), new Vector3(20f, 4f, 1f), wallMaterial);
 
         if (GameObject.Find("Directional Light") == null)
         {
@@ -112,33 +125,31 @@ public static class EchoSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
+    /// <summary>원래는 Auto Hand 기본 스틱 이동을 그대로 썼지만(경쟁하는 커스텀 로코모션이 없었음),
+    /// 2026-09-17 세션에서 8개 게임 전체를 "진짜" 고릴라 태그 로코모션(Another Axiom MIT 패키지)으로
+    /// 통일하기로 결정하면서 이 게임도 갈아 끼웠다. 리그 스폰 + 배선은 Survivor/Magnetic/Tower/
+    /// HoseCleaner와 동일해 AutoHandRigFactory로 승격했다.</summary>
     private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform head,
         out MicInputListener micListener, out Transform startPoint)
     {
-        var rig = new GameObject("PlayerRig");
-        rig.transform.position = new Vector3(0f, 1f, -12f);
-
-        var walk = rig.AddComponent<PlaceholderWalkRig>(); // Rigidbody 자동 부착
-        var body = rig.GetComponent<Rigidbody>();
+        var rig = AutoHandRigFactory.SpawnWithGorillaLocomotion("Echo", "Player", new Vector3(0f, 1f, -12f),
+            out AutoHandPlayer autoHandPlayer, out Rigidbody body);
         body.mass = 70f;
 
-        var bodyCollider = rig.AddComponent<CapsuleCollider>();
-        bodyCollider.radius = 0.3f;
-        bodyCollider.height = 1.7f;
-        bodyCollider.center = new Vector3(0f, 0.85f, 0f);
-
-        head = BuildHead(rig.transform);
-
-        var walkSo = new SerializedObject(walk);
-        MakeAssetsUtil.SetRef(walkSo, "head", head);
-        walkSo.ApplyModifiedPropertiesWithoutUndo();
-
+        head = autoHandPlayer.headCamera.transform;
         micListener = rig.AddComponent<MicInputListener>();
 
+        Transform leftHand = autoHandPlayer.handLeft.transform;
+        Transform rightHand = autoHandPlayer.handRight.transform;
+
+        // root는 래퍼(rig)가 아니라 autoHandPlayer.gameObject다 — 실제로 물리가 그 오브젝트를
+        // 움직이므로, 래퍼를 넣으면 Position/Teleport가 스폰 위치에 얼어붙는다.
         playerRig = rig.AddComponent<PlayerRig>();
         var rigSo = new SerializedObject(playerRig);
-        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "root", autoHandPlayer.transform);
         MakeAssetsUtil.SetRef(rigSo, "head", head);
+        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
+        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
         MakeAssetsUtil.SetRef(rigSo, "body", body);
         rigSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -149,26 +160,12 @@ public static class EchoSceneBuilder
         return rig;
     }
 
-    private static Transform BuildHead(Transform parent)
-    {
-        var head = new GameObject("Head") { tag = "MainCamera" };
-        head.transform.SetParent(parent, false);
-        head.transform.localPosition = new Vector3(0f, 1.6f, 0f);
-
-        var camera = head.AddComponent<Camera>();
-        camera.nearClipPlane = 0.05f;
-        camera.farClipPlane = 300f;
-        head.AddComponent<AudioListener>();
-
-        return head.transform;
-    }
-
     // ────────────────────────────── Monster ──────────────────────────────
 
-    private static GameObject BuildMonster(Transform player, MicInputListener micListener)
+    private static GameObject BuildMonster(Transform player, MicInputListener micListener, string name, Vector3 position)
     {
-        var monster = new GameObject("SoundAttractedMonster");
-        monster.transform.position = new Vector3(8f, 1f, 8f);
+        var monster = new GameObject(name);
+        monster.transform.position = position;
 
         var agent = monster.AddComponent<NavMeshAgent>();
         agent.radius = 0.4f;
@@ -249,10 +246,13 @@ public static class EchoSceneBuilder
         Image fill = CreateBar(rect, "LoudnessBar", new Vector2(0f, -20f), new Vector2(560f, 26f));
         Text warning = MakeAssetsUtil.CreateText(rect, "WarningLabel", string.Empty, 36, TextAnchor.UpperCenter,
             new Vector2(0.5f, 1f), new Vector2(0f, -70f), color: new Color(1f, 0.3f, 0.25f));
+        Text goal = MakeAssetsUtil.CreateText(rect, "GoalLabel", string.Empty, 40, TextAnchor.UpperCenter,
+            new Vector2(0.5f, 1f), new Vector2(0f, -130f), color: new Color(0.4f, 0.95f, 0.6f));
 
         var so = new SerializedObject(hud);
         MakeAssetsUtil.SetRef(so, "loudnessFill", fill);
         MakeAssetsUtil.SetRef(so, "warningLabel", warning);
+        MakeAssetsUtil.SetRef(so, "goalLabel", goal);
         so.ApplyModifiedPropertiesWithoutUndo();
 
         return hud;
@@ -297,8 +297,8 @@ public static class EchoSceneBuilder
 
     // ────────────────────────────── Run manager ──────────────────────────────
 
-    private static void BuildRunManager(PlayerRig playerRig, MicInputListener micListener, SoundAttractedAI monster,
-        Transform startPoint, EchoHUD hud)
+    private static void BuildRunManager(PlayerRig playerRig, MicInputListener micListener, SoundAttractedAI[] monsters,
+        Transform startPoint, Transform goalPoint, EchoHUD hud)
     {
         var managerGo = new GameObject("EchoRunManager");
         var run = managerGo.AddComponent<EchoRunManager>();
@@ -306,10 +306,25 @@ public static class EchoSceneBuilder
         var so = new SerializedObject(run);
         MakeAssetsUtil.SetRef(so, "player", playerRig);
         MakeAssetsUtil.SetRef(so, "micListener", micListener);
-        MakeAssetsUtil.SetRef(so, "monster", monster);
+        MakeAssetsUtil.SetObjectArray(so, "monsters", monsters);
         MakeAssetsUtil.SetRef(so, "startPoint", startPoint);
+        MakeAssetsUtil.SetRef(so, "goalPoint", goalPoint);
         MakeAssetsUtil.SetRef(so, "hud", hud);
         so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    /// <summary>미로 반대편 끝의 탈출구. 목표 없이 무한 배회만 하면 진행감이 없다 — 여기 도달하면
+    /// EchoRunManager가 "탈출 성공"으로 처리한다. 시각 표식은 연출용일 뿐 콜라이더가 없다 —
+    /// 거리 판정은 EchoRunManager가 Transform 거리로 직접 한다.</summary>
+    private static Transform BuildGoal()
+    {
+        var goal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        goal.name = "Goal";
+        goal.transform.position = new Vector3(-20f, 0.1f, 20f);
+        goal.transform.localScale = new Vector3(3f, 0.1f, 3f);
+        Object.DestroyImmediate(goal.GetComponent<Collider>());
+        goal.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "GoalMat", new Color(0.3f, 0.9f, 0.5f));
+        return goal.transform;
     }
 
     // ────────────────────────────── Helpers ──────────────────────────────

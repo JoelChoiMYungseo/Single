@@ -17,8 +17,6 @@ namespace VRGame.Tower
     {
         [Header("References")]
         [SerializeField] private PlayerRig player;
-        [Tooltip("붙잡고 있으면 슬로우모션을 즉시 해제하기 위해 참조한다.")]
-        [SerializeField] private VRHandController[] hands;
 
         [Header("Fall Detection")]
         [Tooltip("아래로 이 속력을 넘으면 '추락 중'으로 본다 (m/s).")]
@@ -183,15 +181,10 @@ namespace VRGame.Tower
             Time.fixedDeltaTime = defaultFixedDeltaTime;
         }
 
+        /// <summary>2026-09-17 세션에서 물리 손 등반을 팔스윙으로 교체하면서 "잡기(grab)" 개념
+        /// 자체가 없어졌다 — 붙잡아서 살아남는 연출은 더 이상 불가능해서 항상 false를 반환한다.</summary>
         private bool IsAnyHandHolding()
         {
-            for (int i = 0; i < hands.Length; i++)
-            {
-                if (hands[i] != null && hands[i].HasGrabbedObject)
-                {
-                    return true;
-                }
-            }
             return false;
         }
     }

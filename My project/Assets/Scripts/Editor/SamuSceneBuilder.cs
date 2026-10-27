@@ -1,10 +1,10 @@
 #if UNITY_EDITOR
+using Autohand;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.XR;
 using VRGame.Core;
 using VRGame.Locomotion;
 using VRGame.Samurai;
@@ -22,17 +22,18 @@ public static class SamuSceneBuilder
     private const string BambooPiecePrefabPath = PrefabFolder + "/BambooPiece.prefab";
     private const string EnemyPrefabPath = PrefabFolder + "/Oni.prefab";
     private const string EnemyPiecePrefabPath = PrefabFolder + "/OniPiece.prefab";
+    private const string KatanaPrefabPath = PrefabFolder + "/Katana.prefab";
 
     /// <summary>플레이어를 Ignore Raycast(내장 레이어 2)에 두고 모든 물리 쿼리에서 제외한다.
     /// 이렇게 하지 않으면 칼끝 SphereCast가 플레이어 자신의 콜라이더에 걸려 허공에서 발사된다.</summary>
     private const int IgnoreRaycastLayer = 2;
     private static int EnvironmentMask => ~(1 << IgnoreRaycastLayer);
 
-    private const int GroundBambooCount = 54;
-    private const int PlatformCount = 30;
-    private const float TowerRadius = 15f;
+    private const int GroundBambooCount = 72;
+    private const int PlatformCount = 42;
+    private const float TowerRadius = 16f;
     private const float TowerBaseY = 6f;
-    private const float TowerTopY = 104f;
+    private const float TowerTopY = 150f; // 6구역(정상 140m) 위로 여유를 두고 정점을 배치한다.
 
     [MenuItem("Tools/Samurai/Build Samu Scene")]
     public static void BuildScene()
@@ -52,22 +53,34 @@ public static class SamuSceneBuilder
         GameObject bambooPrefab = BuildBambooPrefab(bambooPiecePrefab);
         GameObject enemyPiecePrefab = BuildEnemyPiecePrefab();
         GameObject enemyPrefab = BuildEnemyPrefab(enemyPiecePrefab);
+        GameObject katanaPrefab = BuildKatanaPrefab();
 
         MakeAssetsUtil.RemoveDefaultCamera();
+        MakeAssetsUtil.ClearPreviousBuild("Ground", "RisingHazardVisual", "BambooForest", "AscentTower",
+            "PlayerRig", "Player", "XRPlayer", "SamuDirectors", "Katana", "KatanaStand");
         BuildGround();
         BuildBambooForest(bambooPrefab);
         Transform hazardVisual = BuildHazardVisual();
-        BuildAscentTower(bambooPrefab);
+        BuildAscentTower(bambooPrefab, enemyPrefab);
 
         GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform startPoint,
-            out KatanaSlicer slicer, out Transform head);
+            out SwordGorillaLocomotion locomotion, out Transform head);
+
+        // 카타나를 손에 강제로 쥐여주지 않는다 — HoseCleaner와 동일한 관례. 플레이어 바로 앞
+        // 스탠드에 세워 둬서 직접 손을 뻗어 쥐게 한다. 쥐고 있는 동안만 칼끝이 손을 따라 움직이므로
+        // 팔스윙(SwordGorillaLocomotion)도 카타나를 쥐고 있을 때만 작동한다.
+        KatanaSlicer slicer = PlaceKatanaNearPlayer(katanaPrefab, rig.transform.position, out Transform bladeTip);
+        var locomotionSo = new SerializedObject(locomotion);
+        MakeAssetsUtil.SetRef(locomotionSo, "katanaTip", bladeTip);
+        locomotionSo.ApplyModifiedPropertiesWithoutUndo();
+
         SamuHUD hud = BuildHud(head);
         BuildDirectors(rig, playerRig, startPoint, slicer, hazardVisual, enemyPrefab, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log($"[Samurai] Samu 씬 구성 완료 — 구역 4개, 발판 {PlatformCount}개, 대나무 {GroundBambooCount}그루. ▶ Play 하세요.");
+        Debug.Log($"[Samurai] Samu 씬 구성 완료 — 구역 6개, 발판 {PlatformCount}개, 대나무 {GroundBambooCount}그루. ▶ Play 하세요.");
     }
 
     /// <summary>빈 씬에 있던 기본 카메라를 없앤다. 리그에 카메라를 새로 달기 때문에 그대로 두면
@@ -193,7 +206,7 @@ public static class SamuSceneBuilder
 
     /// <summary>나선형으로 올라가는 등반 타워. 발판마다 대나무를 몇 그루 세워 두어, 올라가는 도중에도
     /// 벨 것과 칼을 박을 곳이 있게 한다 — 이동과 전투가 같은 동작으로 이어지는 지점이다.</summary>
-    private static void BuildAscentTower(GameObject bambooPrefab)
+    private static void BuildAscentTower(GameObject bambooPrefab, GameObject enemyPrefab)
     {
         var towerRoot = new GameObject("AscentTower").transform;
         var random = new System.Random(77281);
@@ -221,6 +234,25 @@ public static class SamuSceneBuilder
         }
 
         BuildSummit(towerRoot, platformMaterial);
+        BuildSummitGuardian(towerRoot, enemyPrefab);
+    }
+
+    /// <summary>정점을 지키는 큰 오니. SliceableEnemy는 체력이 없어 한 번 제대로 베면 죽는
+    /// 설계라 — "가장 큰 놈도 제대로 맞추면 한 번에 간다"는 통쾌함을 그대로 유지하면서, 크기와
+    /// 몸통박치기 위력만 키워 정점의 마지막 위협으로 세운다.</summary>
+    private static void BuildSummitGuardian(Transform towerRoot, GameObject enemyPrefab)
+    {
+        var guardian = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
+        guardian.name = "SummitGuardian";
+        guardian.transform.SetParent(towerRoot, false);
+        guardian.transform.position = new Vector3(0f, TowerTopY + 9f, 0f);
+        guardian.transform.localScale = Vector3.one * 2.2f;
+
+        var enemySo = new SerializedObject(guardian.GetComponent<SliceableEnemy>());
+        MakeAssetsUtil.SetFloat(enemySo, "knockbackForce", 18f);
+        MakeAssetsUtil.SetFloat(enemySo, "knockbackLift", 7f);
+        MakeAssetsUtil.SetInt(enemySo, "scoreValue", 400);
+        enemySo.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static void SpawnPlatformBamboo(GameObject bambooPrefab, Transform parent, int platformIndex,
@@ -287,46 +319,46 @@ public static class SamuSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
+    /// <summary>자체 XRNodeTracker 리그 대신 Auto Hand의 XRPlayer 프리팹을 그대로 쓴다 — Survivor와
+    /// 동일한 전환. 카타나는 이제 실제 Grabbable이라(2026-09-17 세션 변경) 여기선 로코모션과 리그만
+    /// 배선하고, 카타나 배치·katanaTip 배선은 BuildScene()에서 리그가 만들어진 뒤에 한다.</summary>
     private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform startPoint,
-        out KatanaSlicer slicer, out Transform head)
+        out SwordGorillaLocomotion locomotion, out Transform head)
     {
-        var rig = new GameObject("PlayerRig");
-        rig.transform.position = new Vector3(0f, 1f, 0f);
+        // 고릴라 스윙(칼끝으로 지형을 찍고 도약)이 유일한 이동 수단이라 Auto Hand의 기본 스틱
+        // 이동은 꺼야 한다(disableBuiltinMovement: true) — 안 끄면 스윙 반동이 그 즉시 지워진다.
+        var rig = AutoHandRigFactory.Spawn("Samurai", "Player", new Vector3(0f, 1f, 0f), disableBuiltinMovement: true,
+            out AutoHandPlayer autoHandPlayer, out Rigidbody playerBody);
 
-        SwordGorillaLocomotion locomotion = rig.AddComponent<SwordGorillaLocomotion>(); // Rigidbody 자동 부착
+        // Rigidbody는 래퍼(rig)가 아니라 autoHandPlayer.gameObject에 있다 — 반드시 거기 붙여야
+        // 그 Rigidbody를 재사용한다(안 그러면 래퍼에 새 빈 Rigidbody가 생겨 로코모션이 무효화된다).
+        locomotion = autoHandPlayer.gameObject.AddComponent<SwordGorillaLocomotion>();
 
-        var bodyCollider = rig.AddComponent<CapsuleCollider>();
-        bodyCollider.radius = 0.3f;
-        bodyCollider.height = 1.7f;
-        bodyCollider.center = new Vector3(0f, 0.85f, 0f);
-
-        head = BuildHead(rig.transform);
-        Transform leftHand = BuildHand(rig.transform, "LeftHand", new Vector3(-0.3f, 1.1f, 0.25f), XRNode.LeftHand);
-        Transform rightHand = BuildHand(rig.transform, "RightHand", new Vector3(0.3f, 1.1f, 0.25f), XRNode.RightHand);
-
-        slicer = BuildKatana(rightHand, out Transform bladeTip);
+        head = autoHandPlayer.headCamera.transform;
+        Transform leftHand = autoHandPlayer.handLeft.transform;
+        Transform rightHand = autoHandPlayer.handRight.transform;
 
         var locomotionSo = new SerializedObject(locomotion);
-        MakeAssetsUtil.SetRef(locomotionSo, "katanaTip", bladeTip);
         MakeAssetsUtil.SetRef(locomotionSo, "freeHand", leftHand);
         MakeAssetsUtil.SetLayerMask(locomotionSo, "environmentMask", EnvironmentMask);
         locomotionSo.ApplyModifiedPropertiesWithoutUndo();
 
-        BuildRigModes(rig, head, rightHand, leftHand);
-
-        // 게임 시스템이 참조할 유일한 플레이어 창구. 로코모션을 갈아 끼워도 이 컴포넌트만 그대로 두면
-        // 사무라이 게임 코드는 아무것도 바뀌지 않는다.
+        // 게임 시스템이 참조할 유일한 플레이어 창구. 이 리그엔 ILocomotionDriver 구현이
+        // SwordGorillaLocomotion 하나뿐이라 PlayerRig가 알아서 정확히 찾는다. root는 래퍼(rig)가
+        // 아니라 autoHandPlayer.gameObject다 — 안 그러면 Position/Teleport가 스폰 위치에 얼어붙는다.
         playerRig = rig.AddComponent<PlayerRig>();
         var rigSo = new SerializedObject(playerRig);
-        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "root", autoHandPlayer.transform);
         MakeAssetsUtil.SetRef(rigSo, "head", head);
         MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
         MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
-        MakeAssetsUtil.SetRef(rigSo, "body", rig.GetComponent<Rigidbody>());
+        MakeAssetsUtil.SetRef(rigSo, "body", playerBody);
         rigSo.ApplyModifiedPropertiesWithoutUndo();
 
-        // 리그 전체(카메라·손·칼 포함)를 물리 쿼리에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
-        MakeAssetsUtil.SetLayerRecursively(rig, IgnoreRaycastLayer);
+        // 칼끝 SphereCast가 자기 몸통 콜라이더를 "지형"으로 잘못 감지하지 않도록 몸통만
+        // Ignore Raycast로 뺀다 — 손·헤드는 Auto Hand의 그립 판정을 건드리지 않게 그대로 둔다.
+        // 실제 CapsuleCollider는 래퍼(rig)가 아니라 autoHandPlayer.gameObject 쪽에 있다.
+        autoHandPlayer.gameObject.layer = IgnoreRaycastLayer;
 
         var startGo = new GameObject("StartPoint");
         startGo.transform.position = rig.transform.position;
@@ -335,40 +367,15 @@ public static class SamuSceneBuilder
         return rig;
     }
 
-    private static Transform BuildHead(Transform parent)
-    {
-        var head = new GameObject("Head") { tag = "MainCamera" };
-        head.transform.SetParent(parent, false);
-        head.transform.localPosition = new Vector3(0f, 1.6f, 0f);
-
-        var camera = head.AddComponent<Camera>();
-        camera.nearClipPlane = 0.05f;
-        camera.farClipPlane = 500f;
-        head.AddComponent<AudioListener>();
-
-        var tracker = head.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
-        return head.transform;
-    }
-
-    private static Transform BuildHand(Transform parent, string name, Vector3 localPosition, XRNode node)
-    {
-        var hand = new GameObject(name);
-        hand.transform.SetParent(parent, false);
-        hand.transform.localPosition = localPosition;
-
-        var tracker = hand.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)node);
-        return hand.transform;
-    }
-
     /// <summary>카타나는 칼날 축(base→tip)이 명확해야 절단 평면을 계산할 수 있다.
     /// 칼날에 콜라이더를 달지 않는 이유는 KatanaSlicer가 OverlapCapsule로 직접 판정하기 때문이다 —
-    /// 콜라이더를 매 프레임 손 속도로 움직이면 물리 엔진이 계속 재계산해서 비싸다.</summary>
-    private static KatanaSlicer BuildKatana(Transform hand, out Transform bladeTip)
+    /// 콜라이더를 매 프레임 손 속도로 움직이면 물리 엔진이 계속 재계산해서 비싸다. 2026-09-17
+    /// 세션부터 카타나는 손에 고정 부착되지 않고 실제 Grabbable이다 — 손잡이 위치에 별도 그립
+    /// 콜라이더(BoxCollider)를 뒀다. HoseCleaner의 호스와 동일한 패턴(프리팹으로 저장 → 플레이어
+    /// 근처 스탠드에 배치 → 직접 손을 뻗어 쥠).</summary>
+    private static GameObject BuildKatanaPrefab()
     {
         var katana = new GameObject("Katana");
-        katana.transform.SetParent(hand, false);
 
         AddChildPrimitive(katana.transform, "Handle", PrimitiveType.Cube, new Vector3(0f, 0f, -0.12f),
             new Vector3(0.035f, 0.035f, 0.24f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "HandleMat", new Color(0.1f, 0.1f, 0.12f)));
@@ -376,7 +383,17 @@ public static class SamuSceneBuilder
             new Vector3(0.012f, 0.05f, 0.84f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "BladeMat", new Color(0.85f, 0.87f, 0.92f)));
 
         Transform bladeBase = AddMarker(katana.transform, "BladeBase", new Vector3(0f, 0f, 0.02f));
-        bladeTip = AddMarker(katana.transform, "BladeTip", new Vector3(0f, 0f, 0.86f));
+        Transform bladeTip = AddMarker(katana.transform, "BladeTip", new Vector3(0f, 0f, 0.86f));
+
+        var body = katana.AddComponent<Rigidbody>();
+        body.mass = 0.8f;
+
+        // 그립 콜라이더 — 손잡이 크기에 맞춰 뒀다. Blade 쪽엔 일부러 콜라이더를 안 둔다(위 요약 참고).
+        var grip = katana.AddComponent<BoxCollider>();
+        grip.center = new Vector3(0f, 0f, -0.12f);
+        grip.size = new Vector3(0.07f, 0.07f, 0.3f);
+
+        katana.AddComponent<Grabbable>(); // handType 기본값(both)이면 양손 다 쥘 수 있어 그대로 둔다.
 
         var slicer = katana.AddComponent<KatanaSlicer>();
         var slicerSo = new SerializedObject(slicer);
@@ -385,25 +402,25 @@ public static class SamuSceneBuilder
         MakeAssetsUtil.SetLayerMask(slicerSo, "sliceableMask", EnvironmentMask);
         slicerSo.ApplyModifiedPropertiesWithoutUndo();
 
-        return slicer;
+        return MakeAssetsUtil.SavePrefab(katana, KatanaPrefabPath);
     }
 
-    /// <summary>VR 추적과 마우스·키보드 임시 조작을 둘 다 붙여두고, 실행 시 헤드셋 유무에 따라
-    /// XRModeSwitcher가 알아서 하나만 켠다.</summary>
-    private static void BuildRigModes(GameObject rig, Transform head, Transform swordHand, Transform freeHand)
+    /// <summary>HoseCleaner의 PlaceHoseNearPlayer와 동일한 관례 — 강제로 쥐여주지 않고 손 뻗으면
+    /// 닿는 스탠드에 세워둔다.</summary>
+    private static KatanaSlicer PlaceKatanaNearPlayer(GameObject katanaPrefab, Vector3 playerPosition, out Transform bladeTip)
     {
-        var placeholder = rig.AddComponent<PlaceholderSwordRig>();
-        var placeholderSo = new SerializedObject(placeholder);
-        MakeAssetsUtil.SetRef(placeholderSo, "head", head);
-        MakeAssetsUtil.SetRef(placeholderSo, "swordHand", swordHand);
-        MakeAssetsUtil.SetRef(placeholderSo, "freeHand", freeHand);
-        placeholderSo.ApplyModifiedPropertiesWithoutUndo();
+        // HoseCleaner는 리그 원점이 거의 바닥(y=0.1)이라 +0.9f를 더해야 손 높이가 나오지만, Samurai
+        // 리그 원점은 이미 y=1f(대략 허리~손 높이)라 그대로 더하면 1.9m — 머리 위로 붕 떠서 안 보이고
+        // 손이 안 닿는다. 절대 높이 기준으로 맞춘다(약 1.1~1.3m).
+        Vector3 standPosition = playerPosition + new Vector3(0.3f, 0.2f, 0.3f);
 
-        var switcher = rig.AddComponent<XRModeSwitcher>();
-        var switcherSo = new SerializedObject(switcher);
-        MakeAssetsUtil.SetObjectArray(switcherSo, "vrOnly", rig.GetComponentsInChildren<XRNodeTracker>(true));
-        MakeAssetsUtil.SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
-        switcherSo.ApplyModifiedPropertiesWithoutUndo();
+        GameObject katana = (GameObject)PrefabUtility.InstantiatePrefab(katanaPrefab);
+        katana.transform.SetParent(null);
+        katana.transform.position = standPosition;
+        katana.transform.rotation = Quaternion.Euler(0f, 0f, -90f); // 손잡이가 위로 오게 세워 둔다.
+
+        bladeTip = katana.transform.Find("BladeTip");
+        return katana.GetComponent<KatanaSlicer>();
     }
 
     // ────────────────────────────── HUD ──────────────────────────────

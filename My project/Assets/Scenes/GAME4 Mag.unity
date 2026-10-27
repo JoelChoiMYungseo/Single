@@ -163,7 +163,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 44
     m_Alignment: 7
     m_AlignByGeometry: 0
     m_RichText: 0
@@ -725,7 +725,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 54
     m_Alignment: 0
     m_AlignByGeometry: 0
     m_RichText: 0
@@ -2518,6 +2518,11 @@ MonoBehaviour:
   placeholderOnly:
   - {fileID: 1959181032}
   forcePlaceholder: 0
+  worldSpaceHud: {fileID: 0}
+  vrEventCamera: {fileID: 0}
+  playerRig: {fileID: 0}
+  vrDriver: {fileID: 0}
+  placeholderDriver: {fileID: 0}
 --- !u!114 &1959181032
 MonoBehaviour:
   m_ObjectHideFlags: 0

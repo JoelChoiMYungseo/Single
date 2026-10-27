@@ -75,10 +75,12 @@ namespace VRGame.Samurai
         {
             return new[]
             {
-                new AscentZone { Name = "죽림",   StartY = 0f,  MaxEnemies = 3,  EnemySpawnInterval = 4.5f, EnemySpeedMultiplier = 1.0f,  HazardRiseSpeed = 0.22f },
-                new AscentZone { Name = "중단",   StartY = 24f, MaxEnemies = 5,  EnemySpawnInterval = 3.2f, EnemySpeedMultiplier = 1.2f,  HazardRiseSpeed = 0.40f },
-                new AscentZone { Name = "고지",   StartY = 52f, MaxEnemies = 7,  EnemySpawnInterval = 2.3f, EnemySpeedMultiplier = 1.45f, HazardRiseSpeed = 0.62f },
-                new AscentZone { Name = "정상",   StartY = 82f, MaxEnemies = 10, EnemySpawnInterval = 1.6f, EnemySpeedMultiplier = 1.75f, HazardRiseSpeed = 0.85f },
+                new AscentZone { Name = "죽림",   StartY = 0f,   MaxEnemies = 3,  EnemySpawnInterval = 4.5f, EnemySpeedMultiplier = 1.0f,  HazardRiseSpeed = 0.22f },
+                new AscentZone { Name = "중단",   StartY = 24f,  MaxEnemies = 5,  EnemySpawnInterval = 3.2f, EnemySpeedMultiplier = 1.2f,  HazardRiseSpeed = 0.40f },
+                new AscentZone { Name = "고지",   StartY = 52f,  MaxEnemies = 7,  EnemySpawnInterval = 2.3f, EnemySpeedMultiplier = 1.45f, HazardRiseSpeed = 0.62f },
+                new AscentZone { Name = "능선",   StartY = 82f,  MaxEnemies = 9,  EnemySpawnInterval = 1.7f, EnemySpeedMultiplier = 1.7f,  HazardRiseSpeed = 0.85f },
+                new AscentZone { Name = "설산",   StartY = 112f, MaxEnemies = 11, EnemySpawnInterval = 1.3f, EnemySpeedMultiplier = 1.95f, HazardRiseSpeed = 1.05f },
+                new AscentZone { Name = "정상",   StartY = 140f, MaxEnemies = 13, EnemySpawnInterval = 1.0f, EnemySpeedMultiplier = 2.2f,  HazardRiseSpeed = 1.3f },
             };
         }
     }

@@ -56,6 +56,13 @@ namespace VRGame.Danmaku
         private WaitForSeconds spiralWaveCooldownWait;
         private WaitForSeconds spiralFireIntervalWait;
 
+        // 이 보스는 서바이버 판에서 여러 번(웨이브마다) 재등장하는 단일 인스턴스다 — 매번 새로
+        // 만들어지는 게 아니라서, "몇 배 세게"가 아니라 "원래 대비 몇 배"로 계산해야 두 번째
+        // 재등장 때 값이 누적으로 어긋나지 않는다. 그래서 원본 발사량을 Awake에서 스냅샷해 둔다.
+        private int baseRingBulletCount;
+        private int basePredictiveSprayCount;
+        private float intensityMultiplier = 1f;
+
         private void Awake()
         {
             if (firePoint == null)
@@ -69,11 +76,30 @@ namespace VRGame.Danmaku
                 playerRig = playerTarget.GetComponent<VRGame.Core.PlayerRig>();
             }
 
-            ringBurstCooldownWait = new WaitForSeconds(ringBurstCooldown);
+            baseRingBulletCount = ringBulletCount;
+            basePredictiveSprayCount = predictiveSprayCount;
+
             ringBurstWaveDelayWait = new WaitForSeconds(ringBurstWaveDelay);
-            predictiveSprayCooldownWait = new WaitForSeconds(predictiveSprayCooldown);
-            spiralWaveCooldownWait = new WaitForSeconds(spiralWaveCooldown);
             spiralFireIntervalWait = new WaitForSeconds(spiralFireInterval);
+            RebuildCooldownWaits();
+        }
+
+        /// <summary>재등장할 때마다(웨이브 보스 격파 수 증가) 호출한다. 발사량과 패턴 간 쿨다운을
+        /// 함께 올려서 "더 빽빽하게, 더 자주" 쏘게 만든다 — 개별 탄 하나를 더 세게 만드는 대신
+        /// 물량으로 압박하는 편이 이 보스의 정체성(정밀 슈팅게임이 아니라 서바이버식 물량)에 맞다.</summary>
+        public void SetIntensity(float multiplier)
+        {
+            intensityMultiplier = Mathf.Max(0.5f, multiplier);
+            ringBulletCount = Mathf.Max(12, Mathf.RoundToInt(baseRingBulletCount * intensityMultiplier));
+            predictiveSprayCount = Mathf.Max(3, Mathf.RoundToInt(basePredictiveSprayCount * intensityMultiplier));
+            RebuildCooldownWaits();
+        }
+
+        private void RebuildCooldownWaits()
+        {
+            ringBurstCooldownWait = new WaitForSeconds(Mathf.Max(0.5f, ringBurstCooldown / intensityMultiplier));
+            predictiveSprayCooldownWait = new WaitForSeconds(Mathf.Max(0.4f, predictiveSprayCooldown / intensityMultiplier));
+            spiralWaveCooldownWait = new WaitForSeconds(Mathf.Max(0.6f, spiralWaveCooldown / intensityMultiplier));
         }
 
         private void OnEnable()

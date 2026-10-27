@@ -17,7 +17,6 @@ namespace VRGame.Tower
         [SerializeField] private Transform startPoint;
         [SerializeField] private TowerManager tower;
         [SerializeField] private FallManager fallManager;
-        [SerializeField] private VRHandController[] hands;
         [SerializeField] private TowerHUD hud;
 
         [Header("Rules")]
@@ -80,24 +79,11 @@ namespace VRGame.Tower
             }
         }
 
-        /// <summary>지금 손에 잡힌 블록 중 가장 심하게 미끄러지는 값. 경고 표시에 쓴다.</summary>
+        /// <summary>2026-09-17 세션에서 물리 손 등반을 팔스윙으로 교체하면서 "잡기(grab)" 개념
+        /// 자체가 없어졌다 — 블록을 붙잡을 손이 없으니 미끄러짐 경고도 항상 0이다.</summary>
         private float GetHeldStrain()
         {
-            float worst = 0f;
-            for (int i = 0; i < hands.Length; i++)
-            {
-                if (hands[i] == null || !hands[i].HasGrabbedObject)
-                {
-                    continue;
-                }
-
-                // 하중을 임계치로 정규화하는 대신, 블록이 스스로 계산해 둔 진행도를 읽는다.
-                if (hands[i].GrabbedTarget is UnstableBlock block)
-                {
-                    worst = Mathf.Max(worst, block.Strain);
-                }
-            }
-            return worst;
+            return 0f;
         }
 
         private void HandleCrashed(float peakSpeed)
@@ -120,14 +106,6 @@ namespace VRGame.Tower
         public void ResetRun()
         {
             awaitingRespawn = false;
-
-            for (int i = 0; i < hands.Length; i++)
-            {
-                if (hands[i] != null)
-                {
-                    hands[i].ReleaseGrab();
-                }
-            }
 
             // 순간이동은 PlayerRig 한 경로로만 한다 — 속도 초기화와 로코모션 상태 리셋이 함께 일어난다.
             player.Teleport(startPoint.position);

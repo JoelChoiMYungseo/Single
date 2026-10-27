@@ -5,15 +5,21 @@ using VRGame.Core;
 namespace VRGame.Survivor
 {
     /// <summary>VR 리그가 붙기 전까지 쓰는 임시 이동 컨트롤러. WASD/화살표로 카메라 기준 평면 이동만
-    /// 한다. 나중에 VR 로코모션으로 교체할 때는 이 컴포넌트만 제거하면 된다 — 체력·자동공격·경험치는
-    /// 이동 방식을 전혀 모르도록 분리해 놨다.</summary>
+    /// 한다. 체력·자동공격·경험치는 이동 방식을 전혀 모르도록 분리해 놨다.
+    ///
+    /// 고릴라 로코모션과 같은 오브젝트에 얹혀 Rigidbody를 공유하므로, 활성화된 동안은 Rigidbody를
+    /// 직접 Transform 이동에 안전하도록 kinematic으로 돌려놓는다 — 안 그러면 중력이 계속 끌어당기는
+    /// 상태에서 매 프레임 transform.position을 덮어써서 물리와 충돌한다. XRModeSwitcher가 VR로
+    /// 전환하며 이 컴포넌트를 꺼주는 순간 OnDisable에서 kinematic을 풀어 로코모션에 제어권을 돌려준다.</summary>
     [RequireComponent(typeof(PlayerStats))]
+    [RequireComponent(typeof(Rigidbody))]
     public class PlaceholderPlayerController : MonoBehaviour, ILocomotionDriver
     {
         [SerializeField] private float arenaHalfExtent = 28f;
         [SerializeField] private float turnSpeed = 12f;
 
         private PlayerStats stats;
+        private Rigidbody body;
 
         /// <summary>가장 최근 이동 방향·속력. 보스의 예측 사격이 PlayerRig를 통해 참조한다.</summary>
         public Vector3 Velocity { get; private set; }
@@ -26,6 +32,18 @@ namespace VRGame.Survivor
         private void Awake()
         {
             stats = GetComponent<PlayerStats>();
+            body = GetComponent<Rigidbody>();
+        }
+
+        private void OnEnable()
+        {
+            body.linearVelocity = Vector3.zero;
+            body.isKinematic = true;
+        }
+
+        private void OnDisable()
+        {
+            body.isKinematic = false;
         }
 
         private void Update()

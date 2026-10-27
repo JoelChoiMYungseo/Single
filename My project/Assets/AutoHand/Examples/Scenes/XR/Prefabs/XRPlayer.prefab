@@ -425,6 +425,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -446,6 +449,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -871,10 +875,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 271303542}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 10
-  m_Drag: 10
-  m_AngularDrag: 30
+  m_LinearDamping: 10
+  m_AngularDamping: 30
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -930,6 +934,7 @@ MonoBehaviour:
     m_Bits: 0
   defaultHighlight: {fileID: 0}
   showAdvanced: 1
+  noHandFriction: 1
   ignoreGrabCheckLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -999,6 +1004,8 @@ MonoBehaviour:
   distanceMassMaxDistance: 0.5
   angleMassDifference: 10
   angleMassMaxAngle: 45
+  maxDistanceNoParentReleaseFrames: 1
+  maxDistanceParentReleaseFrames: 5
 --- !u!114 &5250422442442827258
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1049,6 +1056,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   palmForwardRightDirection: 0.65
+  highlightQuery: 2
   highlightCollidersNonAlloc:
   - {fileID: 0}
   - {fileID: 0}
@@ -1653,10 +1661,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 364032247}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 10
-  m_Drag: 10
-  m_AngularDrag: 30
+  m_LinearDamping: 10
+  m_AngularDamping: 30
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -1712,6 +1720,7 @@ MonoBehaviour:
     m_Bits: 0
   defaultHighlight: {fileID: 0}
   showAdvanced: 1
+  noHandFriction: 1
   ignoreGrabCheckLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1781,6 +1790,8 @@ MonoBehaviour:
   distanceMassMaxDistance: 0.5
   angleMassDifference: 10
   angleMassMaxAngle: 45
+  maxDistanceNoParentReleaseFrames: 1
+  maxDistanceParentReleaseFrames: 5
 --- !u!114 &7059855265731173443
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1831,6 +1842,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   palmForwardRightDirection: 0.65
+  highlightQuery: 2
   highlightCollidersNonAlloc:
   - {fileID: 0}
   - {fileID: 0}
@@ -2899,6 +2911,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2920,6 +2935,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -3372,6 +3388,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3393,6 +3412,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -3536,6 +3556,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3557,6 +3580,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -5082,6 +5106,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5103,6 +5130,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -5190,6 +5218,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5211,6 +5242,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -5498,6 +5530,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5519,6 +5554,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -5773,10 +5809,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1577838259}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 10
-  m_Drag: 10
-  m_AngularDrag: 30
+  m_LinearDamping: 10
+  m_AngularDamping: 30
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -5832,6 +5868,7 @@ MonoBehaviour:
     m_Bits: 0
   defaultHighlight: {fileID: 0}
   showAdvanced: 1
+  noHandFriction: 1
   ignoreGrabCheckLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -5901,6 +5938,8 @@ MonoBehaviour:
   distanceMassMaxDistance: 0.5
   angleMassDifference: 10
   angleMassMaxAngle: 45
+  maxDistanceNoParentReleaseFrames: 1
+  maxDistanceParentReleaseFrames: 5
 --- !u!114 &2564520779050776064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5951,6 +5990,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   palmForwardRightDirection: 0.65
+  highlightQuery: 2
   highlightCollidersNonAlloc:
   - {fileID: 0}
   - {fileID: 0}
@@ -7720,10 +7760,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1907517616}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 10
-  m_Drag: 10
-  m_AngularDrag: 30
+  m_LinearDamping: 10
+  m_AngularDamping: 30
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -7779,6 +7819,7 @@ MonoBehaviour:
     m_Bits: 0
   defaultHighlight: {fileID: 0}
   showAdvanced: 1
+  noHandFriction: 1
   ignoreGrabCheckLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -7848,6 +7889,8 @@ MonoBehaviour:
   distanceMassMaxDistance: 0.5
   angleMassDifference: 10
   angleMassMaxAngle: 45
+  maxDistanceNoParentReleaseFrames: 1
+  maxDistanceParentReleaseFrames: 5
 --- !u!114 &2668657535860550280
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7898,6 +7941,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   palmForwardRightDirection: 0.65
+  highlightQuery: 2
   highlightCollidersNonAlloc:
   - {fileID: 0}
   - {fileID: 0}
@@ -8287,6 +8331,9 @@ SkinnedMeshRenderer:
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -8308,6 +8355,7 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -10030,6 +10078,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 9136378276058449578}
     m_Modifications:
+    - target: {fileID: 1481182634574515286, guid: 89dffe45961978543a2f1c5389c77fcf, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+    - target: {fileID: 2607671808589667222, guid: 89dffe45961978543a2f1c5389c77fcf, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     - target: {fileID: 3686317504681481292, guid: 89dffe45961978543a2f1c5389c77fcf, type: 3}
       propertyPath: m_Name
       value: TeleporterPointer
@@ -12122,6 +12178,14 @@ PrefabInstance:
       propertyPath: m_LocalRotation.x
       value: -0
       objectReference: {fileID: 0}
+    - target: {fileID: 5405401283067383870, guid: 550b13c7ab5987948bb95292d813fbde, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+    - target: {fileID: 8916475941093312510, guid: 550b13c7ab5987948bb95292d813fbde, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

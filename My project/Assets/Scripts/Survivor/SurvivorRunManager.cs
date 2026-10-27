@@ -37,6 +37,7 @@ namespace VRGame.Survivor
         private int bossesSpawned;
         private int killCount;
         private bool isRunning;
+        private bool vrRestartWasHeld;
 
         private void Awake()
         {
@@ -131,7 +132,8 @@ namespace VRGame.Survivor
         {
             if (!isRunning)
             {
-                if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+                bool keyboardRestart = Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
+                if (keyboardRestart || WasVRRestartPressedThisFrame())
                 {
                     BeginRun();
                 }
@@ -164,11 +166,15 @@ namespace VRGame.Survivor
             bossObject.transform.position = spawnPosition;
 
             float health = bossHealth * Mathf.Pow(bossHealthGrowth, bossesSpawned);
+            // 재등장할수록 탄막도 빽빽해진다 — 체력만 오르면 "더 오래 때리는" 지루함만 늘고,
+            // 발사량이 같이 올라야 "더 위험해진다"는 체감이 산다.
+            float bulletIntensity = 1f + bossesSpawned * 0.35f;
             bossesSpawned++;
 
             bossObject.SetActive(true);
             bossTarget.ResetHealth(health);
             bossTarget.SetExperienceValue(bossExperienceValue);
+            bossObject.GetComponent<VRGame.Danmaku.ZombieDanmakuAI>()?.SetIntensity(bulletIntensity);
         }
 
         private void HandleBossDied(EnemyTarget target)
@@ -198,6 +204,24 @@ namespace VRGame.Survivor
         private void HandleLeveledUp(int level)
         {
             hud.SetLevel(level);
+        }
+
+        /// <summary>키보드가 없는 VR에서 재시작할 방법 — 아무 쪽 컨트롤러의 주 버튼(A/X)이든 눌리면 된다.
+        /// bool 피처는 엣지 검출을 스스로 안 해줘서, 눌려 있는 동안 매 프레임 재시작이 걸리지 않도록
+        /// 직접 눌림→뗌 전환을 추적한다.</summary>
+        private bool WasVRRestartPressedThisFrame()
+        {
+            bool held = IsPrimaryButtonHeld(UnityEngine.XR.XRNode.LeftHand) || IsPrimaryButtonHeld(UnityEngine.XR.XRNode.RightHand);
+            bool pressedThisFrame = held && !vrRestartWasHeld;
+            vrRestartWasHeld = held;
+            return pressedThisFrame;
+        }
+
+        // InputSystem과 XR 모듈이 InputDevice/CommonUsages 이름을 공유해서 완전한 이름으로 못박는다.
+        private static bool IsPrimaryButtonHeld(UnityEngine.XR.XRNode node)
+        {
+            UnityEngine.XR.InputDevice device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
+            return device.isValid && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primaryButton, out bool pressed) && pressed;
         }
 
         private void HandlePlayerDied()

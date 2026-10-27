@@ -1,13 +1,12 @@
 #if UNITY_EDITOR
 using System.IO;
+using Autohand;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.XR;
 using VRGame.Core;
-using VRGame.Locomotion;
 using VRGame.Survivor;
 using VRGame.Tower;
 
@@ -19,13 +18,8 @@ public static class TowerSceneBuilder
     private const string MaterialFolder = "Assets/Materials/Tower";
     private const string BlockPrefabPath = PrefabFolder + "/UnstableBlock.prefab";
 
-    /// <summary>플레이어 리그를 Ignore Raycast(내장 레이어 2)에 두고 잡기 판정에서 제외한다 —
-    /// 안 그러면 손이 자기 몸이나 다른 손을 붙잡는다.</summary>
-    private const int IgnoreRaycastLayer = 2;
-    private static int GrabbableMask => ~(1 << IgnoreRaycastLayer);
-
     /// <summary>Quest 2/3 기준 동시 시뮬레이션 블록 상한. 근거는 로그에 남긴다.</summary>
-    private const int SimulatedBlockBudget = 64;
+    private const int SimulatedBlockBudget = 80; // 130층으로 늘어난 만큼 창 크기도 소폭 상향
 
     [MenuItem("Tools/Tower/Build Crumbling Tower Scene")]
     public static void BuildScene()
@@ -44,12 +38,12 @@ public static class TowerSceneBuilder
         GameObject blockPrefab = BuildBlockPrefab();
 
         MakeAssetsUtil.RemoveDefaultCamera();
+        MakeAssetsUtil.ClearPreviousBuild("Ground", "Pedestal", "PlayerRig", "Player", "XRPlayer", "TowerDirectors");
         BuildEnvironment();
 
-        GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint,
-            out VRHandController leftHand, out VRHandController rightHand);
+        GameObject rig = BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint);
         TowerHUD hud = BuildHud(head);
-        BuildDirectors(rig, playerRig, startPoint, blockPrefab, leftHand, rightHand, hud);
+        BuildDirectors(rig, playerRig, startPoint, blockPrefab, hud);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -120,138 +114,41 @@ public static class TowerSceneBuilder
 
     // ────────────────────────────── Player ──────────────────────────────
 
-    private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint,
-        out VRHandController leftHand, out VRHandController rightHand)
+    /// <summary>2026-09-17 세션에서 8개 게임 전체를 "진짜" 고릴라 태그 로코모션(Another Axiom MIT
+    /// 패키지)으로 통일하기로 결정하면서 물리 손 등반(VRHandController + ConfigurableJoint)을
+    /// 걷어냈다. **이 교체로 UnstableBlock의 붕괴 판정(하중 입력)이 죽는다** — 잡기(grab) 자체가
+    /// 없어져서 `IVRGrabbable.ApplyLoad`를 호출할 손이 더는 없다. 블록은 물리적 장애물로는 남지만
+    /// 더는 무너지지 않는다(사용자가 이 트레이드오프를 명시적으로 승인함).</summary>
+    private static GameObject BuildPlayerRig(out PlayerRig playerRig, out Transform head, out Transform startPoint)
     {
-        var rig = new GameObject("PlayerRig");
-        rig.transform.position = new Vector3(0f, 1.2f, 1.6f);
-
-        Rigidbody playerBody = rig.AddComponent<Rigidbody>();
-        playerBody.mass = 70f; // 사람 무게. 이 값이 곧 블록에 실리는 하중의 기준이다.
-        playerBody.useGravity = true;
+        // 리그 스폰 + 고릴라 태그 로코모션 배선을 공용 헬퍼로 처리한다 —
+        // Survivor/Magnetic/HoseCleaner/Echo와 동일한 배선이라 AutoHandRigFactory로 승격했다.
+        var rig = AutoHandRigFactory.SpawnWithGorillaLocomotion("Tower", "Player", new Vector3(0f, 1.2f, 1.6f),
+            out AutoHandPlayer autoHandPlayer, out Rigidbody playerBody);
+        playerBody.mass = 70f;
         playerBody.constraints = RigidbodyConstraints.FreezeRotation;
-        playerBody.interpolation = RigidbodyInterpolation.Interpolate;
         playerBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        var bodyCollider = rig.AddComponent<CapsuleCollider>();
-        bodyCollider.radius = 0.25f;
-        bodyCollider.height = 1.6f;
-        bodyCollider.center = new Vector3(0f, 0.8f, 0f);
+        head = autoHandPlayer.headCamera.transform;
+        Transform leftHand = autoHandPlayer.handLeft.transform;
+        Transform rightHand = autoHandPlayer.handRight.transform;
 
-        head = BuildHead(rig.transform);
-        Transform leftTarget = BuildHandTarget(rig.transform, "LeftHandTarget", new Vector3(-0.26f, 1.35f, 0.4f), XRNode.LeftHand);
-        Transform rightTarget = BuildHandTarget(rig.transform, "RightHandTarget", new Vector3(0.26f, 1.35f, 0.4f), XRNode.RightHand);
-
-        leftHand = BuildPhysicsHand(rig.transform, "LeftPhysicsHand", leftTarget, playerBody, XRNode.LeftHand);
-        rightHand = BuildPhysicsHand(rig.transform, "RightPhysicsHand", rightTarget, playerBody, XRNode.RightHand);
-
-        BuildRigModes(rig, head, leftTarget, rightTarget, leftHand, rightHand);
-
-        // 게임 시스템이 참조할 유일한 플레이어 창구.
+        // 게임 시스템이 참조할 유일한 플레이어 창구. root는 래퍼(rig)가 아니라
+        // autoHandPlayer.gameObject다 — 안 그러면 Position/Teleport가 스폰 위치에 얼어붙는다.
         playerRig = rig.AddComponent<PlayerRig>();
         var rigSo = new SerializedObject(playerRig);
-        MakeAssetsUtil.SetRef(rigSo, "root", rig.transform);
+        MakeAssetsUtil.SetRef(rigSo, "root", autoHandPlayer.transform);
         MakeAssetsUtil.SetRef(rigSo, "head", head);
-        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftTarget);
-        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightTarget);
+        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
+        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
         MakeAssetsUtil.SetRef(rigSo, "body", playerBody);
         rigSo.ApplyModifiedPropertiesWithoutUndo();
-
-        // 타워는 물리 손이 곧 로코모션이라 별도 드라이버 컴포넌트가 없다. 리그 이동을 밖에서
-        // 관측해 속도를 보고하게 한다 — 나중에 외부 로코모션 패키지를 얹어도 이 경로가 그대로 쓰인다.
-        var observer = rig.AddComponent<ObservedLocomotionDriver>();
-        var observerSo = new SerializedObject(observer);
-        MakeAssetsUtil.SetRef(observerSo, "observed", rig.transform);
-        MakeAssetsUtil.SetRef(observerSo, "observedBody", playerBody);
-        observerSo.ApplyModifiedPropertiesWithoutUndo();
-
-        // 리그 전체를 잡기 판정에서 제외한다. 자식을 다 만든 뒤에 적용해야 한다.
-        MakeAssetsUtil.SetLayerRecursively(rig, IgnoreRaycastLayer);
 
         var startGo = new GameObject("StartPoint");
         startGo.transform.position = rig.transform.position;
         startPoint = startGo.transform;
 
         return rig;
-    }
-
-    private static Transform BuildHead(Transform parent)
-    {
-        var head = new GameObject("Head") { tag = "MainCamera" };
-        head.transform.SetParent(parent, false);
-        head.transform.localPosition = new Vector3(0f, 1.5f, 0f);
-
-        var camera = head.AddComponent<Camera>();
-        camera.nearClipPlane = 0.03f;
-        camera.farClipPlane = 300f;
-        head.AddComponent<AudioListener>();
-
-        var tracker = head.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)XRNode.Head);
-        return head.transform;
-    }
-
-    /// <summary>추적된 컨트롤러 포즈만 담는 빈 트랜스폼. 물리 손이 스프링으로 이 지점을 따라간다.</summary>
-    private static Transform BuildHandTarget(Transform parent, string name, Vector3 localPosition, XRNode node)
-    {
-        var target = new GameObject(name);
-        target.transform.SetParent(parent, false);
-        target.transform.localPosition = localPosition;
-
-        var tracker = target.AddComponent<XRNodeTracker>();
-        MakeAssetsUtil.SetEnum(new SerializedObject(tracker), "node", (int)node);
-        return target.transform;
-    }
-
-    /// <summary>실제로 충돌하는 손. 리그의 자식이지만 위치는 물리로만 움직인다 — 부모 트랜스폼에
-    /// 끌려가지 않도록 조인트가 몸통과의 관계를 담당한다.</summary>
-    private static VRHandController BuildPhysicsHand(Transform parent, string name, Transform target,
-        Rigidbody playerBody, XRNode node)
-    {
-        var hand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        hand.name = name;
-        hand.transform.SetParent(parent, false);
-        hand.transform.position = target.position;
-        hand.transform.localScale = Vector3.one * 0.11f;
-        hand.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "HandMat", new Color(0.9f, 0.75f, 0.6f));
-
-        var handBody = hand.AddComponent<Rigidbody>();
-        handBody.useGravity = false;
-
-        var controller = hand.AddComponent<VRHandController>();
-        var so = new SerializedObject(controller);
-        MakeAssetsUtil.SetRef(so, "trackedTarget", target);
-        MakeAssetsUtil.SetRef(so, "playerBody", playerBody);
-        MakeAssetsUtil.SetEnum(so, "handNode", (int)node);
-        MakeAssetsUtil.SetLayerMask(so, "grabbableMask", GrabbableMask);
-        so.ApplyModifiedPropertiesWithoutUndo();
-
-        return controller;
-    }
-
-    private static void BuildRigModes(GameObject rig, Transform head, Transform leftTarget, Transform rightTarget,
-        VRHandController leftHand, VRHandController rightHand)
-    {
-        var placeholder = rig.AddComponent<PlaceholderClimbRig>();
-        var placeholderSo = new SerializedObject(placeholder);
-        MakeAssetsUtil.SetRef(placeholderSo, "head", head);
-        MakeAssetsUtil.SetRef(placeholderSo, "leftHandTarget", leftTarget);
-        MakeAssetsUtil.SetRef(placeholderSo, "rightHandTarget", rightTarget);
-        MakeAssetsUtil.SetRef(placeholderSo, "leftHand", leftHand);
-        MakeAssetsUtil.SetRef(placeholderSo, "rightHand", rightHand);
-        placeholderSo.ApplyModifiedPropertiesWithoutUndo();
-
-        // 임시 모드에서는 손 목표를 이 스크립트가 옮기므로 XR 추적을 꺼야 한다.
-        var trackers = rig.GetComponentsInChildren<XRNodeTracker>(true);
-
-        var switcher = rig.AddComponent<XRModeSwitcher>();
-        var switcherSo = new SerializedObject(switcher);
-        MakeAssetsUtil.SetObjectArray(switcherSo, "vrOnly", trackers);
-        MakeAssetsUtil.SetObjectArray(switcherSo, "placeholderOnly", new Object[] { placeholder });
-        switcherSo.ApplyModifiedPropertiesWithoutUndo();
-
-        // 그립 입력 출처는 PlaceholderClimbRig가 자기 OnEnable/OnDisable에서 전환하므로
-        // 여기서 따로 설정할 것이 없다 — 모드와 입력 경로가 항상 함께 움직인다.
     }
 
     // ────────────────────────────── HUD ──────────────────────────────
@@ -291,10 +188,9 @@ public static class TowerSceneBuilder
     // ────────────────────────────── Directors ──────────────────────────────
 
     private static void BuildDirectors(GameObject rig, PlayerRig playerRig, Transform startPoint,
-        GameObject blockPrefab, VRHandController leftHand, VRHandController rightHand, TowerHUD hud)
+        GameObject blockPrefab, TowerHUD hud)
     {
         var directors = new GameObject("TowerDirectors");
-        var handArray = new Object[] { leftHand, rightHand };
 
         var tower = directors.AddComponent<TowerManager>();
         var towerSo = new SerializedObject(tower);
@@ -306,7 +202,6 @@ public static class TowerSceneBuilder
         var fall = directors.AddComponent<FallManager>();
         var fallSo = new SerializedObject(fall);
         MakeAssetsUtil.SetRef(fallSo, "player", playerRig);
-        MakeAssetsUtil.SetObjectArray(fallSo, "hands", handArray);
         fallSo.ApplyModifiedPropertiesWithoutUndo();
 
         var run = directors.AddComponent<TowerRunManager>();
@@ -315,7 +210,6 @@ public static class TowerSceneBuilder
         MakeAssetsUtil.SetRef(runSo, "startPoint", startPoint);
         MakeAssetsUtil.SetRef(runSo, "tower", tower);
         MakeAssetsUtil.SetRef(runSo, "fallManager", fall);
-        MakeAssetsUtil.SetObjectArray(runSo, "hands", handArray);
         MakeAssetsUtil.SetRef(runSo, "hud", hud);
         MakeAssetsUtil.SetInt(runSo, "simulatedBudgetForDisplay", SimulatedBlockBudget);
         runSo.ApplyModifiedPropertiesWithoutUndo();

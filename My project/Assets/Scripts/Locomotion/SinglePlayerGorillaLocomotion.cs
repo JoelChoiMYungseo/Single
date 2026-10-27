@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.XR;
+using VRGame.Core;
 
 namespace VRGame.Locomotion
 {
@@ -10,7 +11,7 @@ namespace VRGame.Locomotion
     /// 계속 팔을 저어야만 이동이 유지되는 긴박감을 만든다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public class SinglePlayerGorillaLocomotion : MonoBehaviour
+    public class SinglePlayerGorillaLocomotion : MonoBehaviour, ILocomotionDriver
     {
         [Header("Hand References")]
         [SerializeField] private Transform leftHand;
@@ -102,6 +103,17 @@ namespace VRGame.Locomotion
             {
                 device.SendHapticImpulse(0u, hapticAmplitude, hapticDuration);
             }
+        }
+
+        public Vector3 Velocity => rb != null ? rb.linearVelocity : Vector3.zero;
+
+        /// <summary>PlayerRig가 순간이동시킨 뒤 통보한다. 손 기준점을 새 위치로 재동기화하지 않으면
+        /// 몸이 이동한 거리가 그대로 "손이 초고속으로 움직였다"로 계산되어 리스폰 직후
+        /// 플레이어가 로켓처럼 날아간다.</summary>
+        public void OnTeleported(Vector3 position)
+        {
+            if (leftHand != null) lastLeftPos = leftHand.position;
+            if (rightHand != null) lastRightPos = rightHand.position;
         }
     }
 }

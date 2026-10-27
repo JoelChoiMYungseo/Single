@@ -21,7 +21,7 @@ namespace VRGame.Tower
         [SerializeField] private Transform player;
 
         [Header("Tower Shape")]
-        [SerializeField] private int layerCount = 90;
+        [SerializeField] private int layerCount = 130;
         [SerializeField] private int blocksPerLayer = 3;
         [SerializeField] private Vector3 blockSize = new Vector3(0.9f, 0.32f, 0.3f);
         [Tooltip("층 사이 수직 간격. 블록 높이보다 조금 크게 두면 자리 잡을 여유가 생긴다.")]
@@ -48,10 +48,16 @@ namespace VRGame.Tower
         [Tooltip("약한 블록으로 뽑힐 기본 확률 (0층).")]
         [SerializeField] private float weakChanceAtBase = 0.08f;
         [Tooltip("최상층에서의 약한 블록 확률.")]
-        [SerializeField] private float weakChanceAtTop = 0.45f;
+        [SerializeField] private float weakChanceAtTop = 0.58f;
         [Tooltip("약한 블록의 강도 배율. 0.35면 정상 블록의 35% 하중만 버틴다.")]
         [SerializeField] private float weakStrengthMultiplier = 0.35f;
         [SerializeField] private float normalStrengthMultiplier = 1f;
+
+        [Header("Unstable Band — 중간에 유독 위험한 구간 하나")]
+        [Tooltip("전체 흐름이 단조롭게만 어려워지지 않도록, 특정 층 구간만 국지적으로 약한 블록 비율을 확 올린다.")]
+        [SerializeField] private float unstableBandStart = 0.35f; // layerCount에 대한 비율(0~1)
+        [SerializeField] private float unstableBandEnd = 0.48f;
+        [SerializeField] private float unstableBandWeakChance = 0.7f;
 
         [Header("Debris")]
         [Tooltip("빠져나온 블록을 이 시간 뒤 회수한다 — 잔해가 쌓이면 물리 비용이 계속 늘어난다.")]
@@ -98,7 +104,12 @@ namespace VRGame.Tower
                 // 젠가처럼 층마다 90도 돌려 쌓는다 — 이래야 위층이 아래층 두 개를 걸치며 물린다.
                 bool rotated = layer % 2 == 1;
                 float y = baseY + layer * layerSpacing;
-                float weakChance = Mathf.Lerp(weakChanceAtBase, weakChanceAtTop, (float)layer / Mathf.Max(1, layerCount - 1));
+                float progress = (float)layer / Mathf.Max(1, layerCount - 1);
+                float weakChance = Mathf.Lerp(weakChanceAtBase, weakChanceAtTop, progress);
+                if (progress >= unstableBandStart && progress <= unstableBandEnd)
+                {
+                    weakChance = Mathf.Max(weakChance, unstableBandWeakChance);
+                }
 
                 for (int i = 0; i < blocksPerLayer; i++)
                 {

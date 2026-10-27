@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using Autohand;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -45,14 +46,20 @@ public static class SurvivorSceneBuilder
         GameObject gemPrefab = BuildGemPrefab();
         GameObject danmakuPrefab = BuildDanmakuPrefab();
 
+        // Auto Hand 리그의 Head 카메라가 유일한 카메라여야 한다 — 빈 씬 기본 카메라가 남아 있으면
+        // MainCamera 태그가 둘이 되어 렌더링을 다툰다.
+        MakeAssetsUtil.RemoveDefaultCamera();
+
         GameObject arena = SetupArena();
         GameObject player = SetupPlayer();
         GameObject boss = SetupBoss();
         GameObject manager = SetupManager();
-        SetupCamera(player.transform);
         EnsureEventSystem();
 
-        HudRefs hud = BuildUI();
+        // AutoHandPlayer는 래퍼(player)가 아니라 중첩된 자식에 있다 — AutoHandRigFactory 클래스
+        // 주석 참고. GetComponent(비재귀)가 아니라 GetComponentInChildren으로 찾아야 한다.
+        Transform head = player.GetComponentInChildren<AutoHandPlayer>(true).headCamera.transform;
+        HudRefs hud = BuildUI(head);
 
         WireEverything(player, boss, manager, hud, enemyPrefab, projectilePrefab, gemPrefab, danmakuPrefab);
         HideLeftoverObjects();
@@ -60,7 +67,8 @@ public static class SurvivorSceneBuilder
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log($"[Survivor] 구성 완료 — 아레나 {arena.name}, 플레이 버튼을 눌러 WASD로 이동하세요.");
+        Debug.Log($"[Survivor] 구성 완료 — 아레나 {arena.name}. Auto Hand 리그, VR 전용입니다. " +
+                  "팔을 저어 이동하세요 (땅을 짚듯 손을 아래로 휘두르면 그 반대로 밀려납니다). ▶ Play 하세요.");
     }
 
     // ────────────────────────────── Prefabs ──────────────────────────────
@@ -120,7 +128,7 @@ public static class SurvivorSceneBuilder
 
         arena.transform.position = Vector3.zero;
         arena.transform.rotation = Quaternion.identity;
-        arena.transform.localScale = new Vector3(6f, 1f, 6f); // Plane 기본 10x10 → 60x60
+        arena.transform.localScale = new Vector3(7.2f, 1f, 7.2f); // Plane 기본 10x10 → 72x72 (arenaHalfExtent 34 여유)
 
         var renderer = arena.GetComponent<MeshRenderer>();
         if (renderer != null)
@@ -131,33 +139,32 @@ public static class SurvivorSceneBuilder
         return arena;
     }
 
+    /// <summary>자체 XRNodeTracker 리그 대신 Auto Hand의 XRPlayer 프리팹을 그대로 쓴다 — 손 IK·그립
+    /// 조인트를 다시 만들 이유가 없다. 로코모션은 2026-09-17 세션부터 Another Axiom의 공식 Gorilla
+    /// Tag MIT 패키지(<c>AutoHandRigFactory.SpawnWithGorillaLocomotion</c> 내부에서 배선)를 쓴다.</summary>
     private static GameObject SetupPlayer()
     {
-        GameObject player = FindByAnyName("Player") ?? new GameObject("Player");
-        player.name = "Player";
+        GameObject existing = FindByAnyName("Player", "XRPlayer");
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing);
+        }
+
+        // 리그 스폰 + 팔스윙 배선(손 참조·환경 마스크·Ignore Raycast)을 공용 헬퍼로 처리한다 —
+        // Magnetic/Tower/HoseCleaner/Echo와 동일한 배선이라 AutoHandRigFactory로 승격했다.
+        GameObject player = AutoHandRigFactory.SpawnWithGorillaLocomotion("Survivor", "Player", Vector3.zero,
+            out AutoHandPlayer autoHandPlayer, out Rigidbody playerBody);
 
         EnsureComponent<PlayerStats>(player);
         EnsureComponent<PlayerHealth>(player);
         EnsureComponent<PlayerExperience>(player);
         EnsureComponent<AutoAttackWeapon>(player);
-        EnsureComponent<PlaceholderPlayerController>(player);
 
-        // 사용자가 이미 메쉬를 붙여 놨으면 그대로 쓰고, 바닥에 걸치도록 높이만 맞춘다.
-        bool hasOwnVisual = player.GetComponent<MeshRenderer>() != null;
-        if (hasOwnVisual)
-        {
-            player.transform.position = new Vector3(0f, 0.5f, 0f);
-            player.GetComponent<MeshRenderer>().sharedMaterial = MakeAssetsUtil.MakeMaterial(MaterialFolder, "PlayerMat", new Color(0.25f, 0.6f, 1f));
-        }
-        else
-        {
-            player.transform.position = Vector3.zero;
-            if (player.transform.Find("Visual") == null)
-            {
-                AddVisual(player, PrimitiveType.Capsule, new Vector3(0f, 1f, 0f), MakeAssetsUtil.MakeMaterial(MaterialFolder, "PlayerMat", new Color(0.25f, 0.6f, 1f)));
-            }
-        }
+        Transform head = autoHandPlayer.headCamera.transform;
+        Transform leftHand = autoHandPlayer.handLeft.transform;
+        Transform rightHand = autoHandPlayer.handRight.transform;
 
+        // 자동조준 발사 지점은 몸통 정면으로 둔다 — 조준은 플레이어가 아니라 AutoAttackWeapon이 한다.
         Transform muzzle = player.transform.Find("Muzzle");
         if (muzzle == null)
         {
@@ -171,12 +178,17 @@ public static class SurvivorSceneBuilder
         MakeAssetsUtil.SetRef(weaponSo, "muzzle", muzzle);
         weaponSo.ApplyModifiedPropertiesWithoutUndo();
 
-        // 게임 시스템이 참조할 유일한 플레이어 창구. 이 게임은 Transform 이동이라 body는 비운다 —
-        // 나중에 물리 기반 로코모션으로 바꾸면 body만 채우면 되고 게임 코드는 안 바뀐다.
+        // 게임 시스템이 참조할 유일한 플레이어 창구. ILocomotionDriver 구현은 SpawnWithGorillaLocomotion이
+        // 이미 붙인 ObservedLocomotionDriver 하나뿐이라 PlayerRig가 알아서 정확히 찾는다. root는
+        // 래퍼(player)가 아니라 autoHandPlayer.gameObject다 — 안 그러면 Position/Teleport가 스폰
+        // 위치에 얼어붙는다.
         var playerRig = EnsureComponent<PlayerRig>(player);
         var rigSo = new SerializedObject(playerRig);
-        MakeAssetsUtil.SetRef(rigSo, "root", player.transform);
-        // 탑다운 게임이라 머리·손 개념이 없다. 비워 두는 것이 가짜 참조를 넣는 것보다 정직하다.
+        MakeAssetsUtil.SetRef(rigSo, "root", autoHandPlayer.transform);
+        MakeAssetsUtil.SetRef(rigSo, "head", head);
+        MakeAssetsUtil.SetRef(rigSo, "leftHand", leftHand);
+        MakeAssetsUtil.SetRef(rigSo, "rightHand", rightHand);
+        MakeAssetsUtil.SetRef(rigSo, "body", playerBody);
         rigSo.ApplyModifiedPropertiesWithoutUndo();
 
         return player;
@@ -238,22 +250,6 @@ public static class SurvivorSceneBuilder
         return manager;
     }
 
-    private static void SetupCamera(Transform player)
-    {
-        Camera camera = Camera.main;
-        if (camera == null)
-        {
-            var go = new GameObject("Main Camera") { tag = "MainCamera" };
-            camera = go.AddComponent<Camera>();
-        }
-
-        camera.transform.SetParent(null);
-        var follow = EnsureComponent<TopDownCameraFollow>(camera.gameObject);
-        var so = new SerializedObject(follow);
-        MakeAssetsUtil.SetRef(so, "target", player);
-        so.ApplyModifiedPropertiesWithoutUndo();
-    }
-
     private static void EnsureEventSystem()
     {
         if (Object.FindFirstObjectByType<EventSystem>() != null)
@@ -292,7 +288,7 @@ public static class SurvivorSceneBuilder
         public Text[] Descriptions;
     }
 
-    private static HudRefs BuildUI()
+    private static HudRefs BuildUI(Transform head)
     {
         GameObject existing = GameObject.Find("SurvivorCanvas");
         if (existing != null)
@@ -302,7 +298,16 @@ public static class SurvivorSceneBuilder
 
         var canvasGo = new GameObject("SurvivorCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         var canvas = canvasGo.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        // Auto Hand 리그는 VR 전용(데스크톱 폴백 없음)이라 처음부터 WorldSpace로 Head에 고정한다 —
+        // HoseCleaner의 HUD와 동일한 방식.
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.worldCamera = head.GetComponent<Camera>();
+        canvasGo.transform.SetParent(head, false);
+        canvasGo.transform.localPosition = new Vector3(0f, 0f, 1.4f);
+        canvasGo.transform.localRotation = Quaternion.identity;
+        canvasGo.transform.localScale = Vector3.one * 0.001f;
+        canvasGo.GetComponent<RectTransform>().sizeDelta = new Vector2(1920f, 1080f);
+
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
@@ -508,6 +513,18 @@ public static class SurvivorSceneBuilder
         var spawnerSo = new SerializedObject(spawner);
         MakeAssetsUtil.SetRef(spawnerSo, "enemyPrefab", enemyPrefab.GetComponent<SwarmEnemy>());
         MakeAssetsUtil.SetRef(spawnerSo, "gemPool", gemPool);
+        // 난이도 상향 — GameManager는 씬에 이미 있으면 재사용되므로(EnsureComponent), C# 기본값을
+        // 바꾸는 것만으론 이미 지어진 씬에 반영되지 않는다. 재빌드할 때마다 적용되도록 명시적으로 밀어넣는다.
+        MakeAssetsUtil.SetInt(spawnerSo, "maxConcurrentEnemies", 220);
+        MakeAssetsUtil.SetInt(spawnerSo, "burstSize", 3);
+        MakeAssetsUtil.SetFloat(spawnerSo, "minSpawnInterval", 0.05f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "intervalDecayPerMinute", 0.35f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "healthGainPerMinute", 20f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "speedGainPerMinute", 0.7f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "maxEnemySpeed", 8f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "damageGainPerMinute", 6f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "spawnDistance", 26f);
+        MakeAssetsUtil.SetFloat(spawnerSo, "arenaHalfExtent", 34f);
         spawnerSo.ApplyModifiedPropertiesWithoutUndo();
 
         var gemSo = new SerializedObject(gemPool);
@@ -546,7 +563,34 @@ public static class SurvivorSceneBuilder
         MakeAssetsUtil.SetRef(runSo, "hud", hud.Hud);
         MakeAssetsUtil.SetRef(runSo, "bossObject", boss);
         MakeAssetsUtil.SetRef(runSo, "bossTarget", boss.GetComponent<EnemyTarget>());
+        // 난이도 상향 — 보스를 더 자주, 더 오래 버티게 등장시킨다.
+        MakeAssetsUtil.SetFloat(runSo, "firstBossAtSeconds", 45f);
+        MakeAssetsUtil.SetFloat(runSo, "bossIntervalSeconds", 70f);
+        MakeAssetsUtil.SetFloat(runSo, "bossHealth", 2200f);
+        MakeAssetsUtil.SetFloat(runSo, "bossHealthGrowth", 1.75f);
         runSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // Auto Hand 리그의 손은 "LeftHand"/"RightHand"라는 이름으로 player 바로 밑에 있지 않다 —
+        // AutoHandPlayer가 들고 있는 실제 참조로 가져온다. AutoHandPlayer 자신도 래퍼(player)가
+        // 아니라 중첩된 자식에 있으므로 GetComponentInChildren으로 찾아야 한다.
+        var autoHandPlayer = player.GetComponentInChildren<AutoHandPlayer>(true);
+        Transform leftHandTransform = autoHandPlayer.handLeft.transform;
+        Transform rightHandTransform = autoHandPlayer.handRight.transform;
+
+        // VR에는 마우스가 없다 — 업그레이드 카드를 손으로 직접 짚어서 고르게 한다.
+        var touch = EnsureComponent<VRUpgradeButtonTouch>(player);
+        var touchSo = new SerializedObject(touch);
+        MakeAssetsUtil.SetRef(touchSo, "leftHand", leftHandTransform);
+        MakeAssetsUtil.SetRef(touchSo, "rightHand", rightHandTransform);
+        MakeAssetsUtil.SetObjectArray(touchSo, "choiceButtons", hud.Buttons);
+        touchSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 팔을 휘둘러 이동하는 게임이니, 그 손을 빠르게 휘둘러 잡몹에 대면 그대로 근접 데미지가 된다.
+        var punch = EnsureComponent<HandPunchDamage>(player);
+        var punchSo = new SerializedObject(punch);
+        MakeAssetsUtil.SetRef(punchSo, "leftHand", leftHandTransform);
+        MakeAssetsUtil.SetRef(punchSo, "rightHand", rightHandTransform);
+        punchSo.ApplyModifiedPropertiesWithoutUndo();
     }
 
     // ────────────────────────────── Helpers ──────────────────────────────

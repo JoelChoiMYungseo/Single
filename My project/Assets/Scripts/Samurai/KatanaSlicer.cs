@@ -13,7 +13,7 @@ namespace VRGame.Samurai
         [Header("Blade")]
         [SerializeField] private Transform bladeBase;
         [SerializeField] private Transform bladeTip;
-        [SerializeField] private float bladeRadius = 0.05f;
+        [SerializeField] private float bladeRadius = 0.1f; // 2026-09-17: 판정이 너무 좁다는 피드백으로 2배(0.05→0.1)
 
         [Header("Slice Condition")]
         [Tooltip("이 속력(m/s) 이상으로 휘둘러야 잘린다. 낮추면 툭 쳐도 잘려서 손맛이 사라진다.")]

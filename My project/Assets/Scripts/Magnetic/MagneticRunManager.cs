@@ -10,7 +10,6 @@ namespace VRGame.Magnetic
     {
         [Header("References")]
         [SerializeField] private PlayerRig player;
-        [SerializeField] private MagneticLocomotion locomotion;
         [SerializeField] private CrashHandler crashHandler;
         [SerializeField] private Transform startPoint;
         [SerializeField] private MagneticHUD hud;
@@ -42,10 +41,9 @@ namespace VRGame.Magnetic
 
         private void Update()
         {
+            // 2026-09-17 세션에서 로코모션을 팔스윙으로 교체하면서 극성/하자드 견인 개념이
+            // 사라졌다 — 그 HUD 항목(SetPolarity/SetWarning)은 더 이상 갱신하지 않는다.
             hud.SetSpeed(player.Velocity.magnitude);
-            hud.SetPolarity(true, locomotion.LeftPolarity);
-            hud.SetPolarity(false, locomotion.RightPolarity);
-            hud.SetWarning(locomotion.IsAnyHazardAttracted);
 
             if (player.Position.y < killPlaneY)
             {
